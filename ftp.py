@@ -5,10 +5,11 @@ class UploadFTP:
     def __init__(self, \
                 host:str, \
                 name:str, \
-                password:str \
+                password:str, \
+                path:str \
                 ) -> None:
         
-        self.do_ftp(host, name, password)
+        self.do_ftp(host, name, password, path)
 
 
     def read(self, path):
@@ -27,7 +28,7 @@ class UploadFTP:
                     server.rmd(i)
 
 
-    def do_ftp(self, h, u, p):
+    def do_ftp(self, h, u, p, path):
         with FTP(h, u, p) as server:
             server.cwd('public_html')
             #remove files from FTP (recursively)
@@ -35,10 +36,10 @@ class UploadFTP:
                 self.dir_del_r(server, '')
 
                 #upload files to FTP
-                file = open('C:/Users/Kuba/Documents/praca/Zaplecza/pliki-artur/wordpress-artur.zip', 'rb')
+                file = open(path + '/wordpress-artur.zip', 'rb')
                 server.storbinary('STOR wordpress-artur.zip', file)
                 file.close()
-                file = open('C:/Users/Kuba/Documents/praca/Zaplecza/pliki-artur/wypakuj.php', 'rb')
+                file = open(path + '/wypakuj.php', 'rb')
                 server.storbinary('STOR wypakuj.php', file)
                 file.close()
 
