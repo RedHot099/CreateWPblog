@@ -9,7 +9,8 @@ import os
 
 
 class OpenAI_article:
-    def __init__(self, api_key, 
+    def __init__(self, 
+                 api_key, 
                  domain_name, 
                  wp_login, 
                  wp_pass
