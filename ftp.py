@@ -55,8 +55,8 @@ class UploadFTP:
 
 
     def ping_unpack(self, url):
-        requests.get("http://" + url + "/wypakuj.php")
+        requests.get("http://" + url + "/wypakuj.php", verify=False)
 
 
 if __name__ == "__main__":
-    z = UploadFTP()
+    pass
