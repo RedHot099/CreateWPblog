@@ -20,7 +20,7 @@ class Setup_WP:
 		
 		options = webdriver.ChromeOptions()
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
-		options.add_argument('--headless=new')
+		# options.add_argument('--headless=new')
 		options.add_argument('ignore-certificate-errors')
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 		
@@ -31,10 +31,19 @@ class Setup_WP:
 		
 
 	def start(self):
-		self.driver.get(f"http://{self.url}/")
-		sleep(1)
+		self.get_url(f"http://{self.url}/")
 		self.driver.find_element(By.CLASS_NAME, "button").click()
 		sleep(1)
+
+	
+	def get_url(self, url:str):
+		self.driver.get(url)
+		if self.driver.current_url.split('/')[-1].startswith("upgrade"):
+			self.driver.find_element(By.CLASS_NAME, "button").click()
+			sleep(1.5)
+			self.driver.get(url)
+			sleep(0.5)
+
 
 
 	def connect_db(self, db_name:str, db_pass:str):
@@ -65,8 +74,7 @@ class Setup_WP:
 	
 		
 	def login(self, login:str, pwd: str):
-		self.driver.get(f"https://{self.url}/wp-admin")
-		sleep(1)
+		self.get_url(f"https://{self.url}/wp-admin")
 		self.driver.find_element(By.ID, "user_login").clear()
 		self.driver.find_element(By.ID, "user_login").send_keys(login)
 		self.driver.find_element(By.ID, "user_pass").clear()
@@ -76,15 +84,12 @@ class Setup_WP:
 
 
 	def delete_posts(self):
-		self.driver.get(f"https://{self.url}/wp-admin/edit.php")
-		sleep(1)
+		self.get_url(f"https://{self.url}/wp-admin/edit.php")
 		try:
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		except NoSuchElementException:
 			sleep(2)
-			self.driver.get(f"https://{self.url}/wp-admin/edit.php")
-			sleep(1)
-			self.driver.find_element(By.ID, "cb-select-all-1").click()
+			self.get_url(f"https://{self.url}/wp-admin/edit.php")
 		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
 		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='trash']").click()
 		self.driver.find_element(By.ID, "doaction").click()
@@ -93,9 +98,14 @@ class Setup_WP:
 
 
 	def delete_pages(self):
-		self.driver.get(f"https://{self.url}/wp-admin/edit.php?post_type=page")
-		sleep(1)
-		self.driver.find_element(By.ID, "cb-select-all-1").click()
+		self.get_url(f"https://{self.url}/wp-admin/edit.php?post_type=page")
+		try:
+			self.driver.find_element(By.ID, "cb-select-all-1").click()
+		except NoSuchElementException:
+			sleep(2)
+			self.get_url(f"https://{self.url}/wp-admin/edit.php?post_type=page")
+			sleep(1)
+			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
 		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='trash']").click()
 		self.driver.find_element(By.ID, "doaction").click()
@@ -116,13 +126,12 @@ class Setup_WP:
 	
 	def settings(self):
 		#general settings
-		self.driver.get(f"https://{self.url}/wp-admin/options-general.php")
+		self.get_url(f"https://{self.url}/wp-admin/options-general.php")
 		self.driver.find_element(By.ID, "blogdescription").clear()
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(0.5)
 		#discussion settings
-		self.driver.get(f"https://{self.url}/wp-admin/options-discussion.php")
-		sleep(0.5)
+		self.get_url(f"https://{self.url}/wp-admin/options-discussion.php")
 		for i, fieldset in enumerate(self.driver.find_elements(By.TAG_NAME, "fieldset")):
 			if i%2:
 				for box in fieldset.find_elements(By.TAG_NAME, "input"):
@@ -133,17 +142,20 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(1)
 		#permalink settings
-		self.driver.get(f"https://{self.url}/wp-admin/options-permalink.php")
-		sleep(0.1)
+		self.get_url(f"https://{self.url}/wp-admin/options-permalink.php")
 		self.driver.find_element(By.ID, "permalink-input-post-name").click()
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(1)
 
-	def get_api_key(self):
-		self.driver.get(f"https://{self.url}/wp-admin/profile.php")
+	def get_api_key(self, login:str, pwd:str):
+		self.login(login, pwd)
+		self.get_url(f"https://{self.url}/wp-admin/profile.php")
+		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+		sleep(0.1)
 		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api")
 		self.driver.find_element(By.ID, "do_new_application_password").click()
-		api_key = self.driver.find_element(By.ID, "new-application-password-value").get_attribute("innerText")
+		sleep(0.5)
+		api_key = self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value")
 		print("API KEY: ", api_key)
 		return api_key
 
@@ -151,8 +163,8 @@ class Setup_WP:
 	def install(self, db_name:str, db_pass:str, name:str):
 		self.start()
 		self.connect_db(db_name, db_pass)
-		pwd = self.give_name(name)
-		return pwd
+		uname, pwd = self.give_name(name)
+		return uname, pwd
 
 	
 	def setup(self, login:str, pwd:str):
@@ -162,14 +174,7 @@ class Setup_WP:
 		self.settings()
 		sleep(1)
 		self.driver.close()
-		return self.get_api_key()
-
-
-
-
-		
-
-
+	
 
 if __name__ == "__main__":
 	pass
