@@ -26,8 +26,6 @@ class Create:
 		options.add_argument('ignore-certificate-errors')
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 		
-		self.do_stuff(self.read("input.txt"))
-		
 	
 	def read(self, path):
 		with open(path, "r") as f:
@@ -55,7 +53,7 @@ class Create:
 		
 		
 	def add_ip(self, name:str):
-		print("IP")
+		print("IP", name)
 		#Adding domain
 		sleep(2)
 		self.driver.get(f'https://{self.panel}/user/domains/domain/{name}/ips')
@@ -123,11 +121,19 @@ class Create:
 		return ftp_user, ftp_pass
 	
 
-	def do_stuff(self, names):
+	def do_stuff(self, input_path:str) -> list[str]:
 		self.login()
 
+		domain_names = []
+		domain_topics = []
+		
+		for n in self.read(input_path):
+			domain_names.append(n.split('\t')[0])
+			domain_topics.append(n.split('\t')[1]) if len(n.split('\t')) > 1 else domain_topics.append([''])
+
+
 		with open("results.tsv", "a+") as output:
-			for name in names:
+			for name in domain_names:
 				self.add_domain(name)
 				self.add_ip(name)
 				self.add_ssl()
@@ -141,6 +147,9 @@ class Create:
 				#close tab and switch to main
 				self.driver.close()
 				self.driver.switch_to.window(self.driver.window_handles[0])
+
+
+		return domain_topics
 
 
 
