@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 class Create:
@@ -34,30 +35,32 @@ class Create:
 	def login(self):
 		print("Logging into panel")
 		self.driver.get(f"http://{self.panel}/")
-		sleep(1)
+		# self.driver.implicitly_wait(1)
+		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "input")))
 		self.driver.find_element("id", "username").find_element(By.TAG_NAME, "input").send_keys(self.user)
 		self.driver.find_element("id", "password").find_element(By.TAG_NAME, "input").send_keys(self.password)
 		self.driver.execute_script("document.getElementsByTagName('button')[0].click()")
-		sleep(1)
+		self.driver.implicitly_wait(1)
 		return self.driver
 				
 	def add_domain(self, name: str):
 		print("Creating domain base")
 		self.driver.execute_script(f"window.open('https://{self.panel}/user/domains/add-domain');")
-		sleep(1)
+		self.driver.implicitly_wait(1)
 		self.driver.switch_to.window(self.driver.window_handles[1])
-		sleep(2)
+		self.driver.implicitly_wait(2)
 		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys(name)
-		sleep(1)
+		self.driver.implicitly_wait(1)
 		self.driver.find_elements(By.TAG_NAME, "button")[2].click()
 		
 		
 	def add_ip(self, name:str):
 		print("IP", name)
 		#Adding domain
-		sleep(2)
+		self.driver.implicitly_wait(1)
 		self.driver.get(f'https://{self.panel}/user/domains/domain/{name}/ips')
-		sleep(1)
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located(By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > section > div.r-table > div.ui-table.scrollbar\:primary > table > tbody.q-virtual-scroll__content > tr > td:nth-child(2)"))
+		# self.driver.implicitly_wait(1)
 		ip = s.gethostbyname(name)
 		if (self.driver.find_element(By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > section > div.r-table > div.ui-table.scrollbar\:primary > table > tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
 			self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
@@ -74,24 +77,26 @@ class Create:
 		print("SSL")
 		#SSL
 		self.driver.get(f'https://{self.panel}/user/ssl/server/')
-		sleep(1)
+		# self.driver.implicitly_wait(1)
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located(By.CSS_SELECTOR, "div.input-checkbox-control"))
 		self.driver.find_elements(By.CSS_SELECTOR, "div.input-checkbox-control")[0].click()
 		self.driver.find_element(By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > div:nth-child(1) > div > div > div.formElement-content.fxi\:grow\:true.fxi\:shrink\:true.fx\:dir\:row.fx\:cross\:center.fx\:equalWidth\:true > div > div > button").click()	
-		sleep(0.2)
+		self.driver.implicitly_wait(0.2)
 
 
 	def add_db(self, name:str):
 		print("DataBase")
 		#DB
 		self.driver.get(f'https://{self.panel}/user/database/create')
-		sleep(1)
+		# self.driver.implicitly_wait(1)
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located(By.TAG_NAME, "input"))
 		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys(name.partition('.')[0])
 		self.driver.find_element(By.CSS_SELECTOR, "div.inputPassword>div>div>div>button").click()
-		sleep(0.5)
+		self.driver.implicitly_wait(0.5)
 		self.driver.find_element(By.CSS_SELECTOR, "div.footer-buttons-slot>button").click()
 
 		#Copy db creds
-		sleep(1)
+		self.driver.implicitly_wait(1)
 		db_creds = self.driver.find_element(By.CLASS_NAME, "dialog-content-wrapper").get_attribute("innerText").split('\n')
 		db_user = db_creds[3].split('\t')[1]
 		db_pass = db_creds[4].split('\t')[1]
@@ -104,14 +109,15 @@ class Create:
 		print("FTP")
 		#FTP
 		self.driver.get(f'https://{self.panel}/user/ftp-accounts/create')
-		sleep(1)
+		# self.driver.implicitly_wait(1)
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located(By.TAG_NAME, "input"))
 		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys("admin")
 		self.driver.find_element(By.CSS_SELECTOR, "div.inputPassword>div>div>div>button").click()
-		sleep(0.5)
+		self.driver.implicitly_wait(0.5)
 		self.driver.find_element(By.CSS_SELECTOR, "div.footer-buttons-slot>button").click()
 
 		#Copy ftp creds
-		sleep(1)
+		self.driver.implicitly_wait(1)
 		ftp_creds = self.driver.find_element(By.CLASS_NAME, "dialog-content-wrapper").get_attribute("innerText").split('\n')
 		ftp_user = ftp_creds[0].split('\t')[1]
 		ftp_pass = ftp_creds[1].split('\t')[1]
