@@ -3,3 +3,5 @@ credentials*
 input.txt
 env
 env/*
+files
+files/*
