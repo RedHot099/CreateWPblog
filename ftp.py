@@ -1,5 +1,6 @@
 from ftplib import FTP
 import requests
+from time import sleep
 
 class UploadFTP:
     def __init__(self, \
@@ -30,20 +31,21 @@ class UploadFTP:
 
     def do_ftp(self, h, u, p, path):
         with FTP(h, u, p) as server:
+            print("Logged into FTP")
             server.cwd('public_html')
             #remove files from FTP (recursively)
             if not 'dodaj_tagi_artur_v1.php' in server.nlst():
                 self.dir_del_r(server, '')
 
                 #upload files to FTP
-                file = open(path + '/wordpress-artur.zip', 'rb')
-                server.storbinary('STOR wordpress-artur.zip', file)
-                file.close()
-                file = open(path + '/wypakuj.php', 'rb')
-                server.storbinary('STOR wypakuj.php', file)
-                file.close()
+                with open(path + '/wordpress-artur.zip', 'rb') as file:
+                    server.storbinary('STOR wordpress-artur.zip', file)                
+
+                with open(path + '/wypakuj.php', 'rb') as file:
+                    server.storbinary('STOR wypakuj.php', file)
 
                 #ping to unpack .zip
+                print("Unpacking WordPress")
                 self.ping_unpack(h)
             else:
                 print("Wordpress already on FTP")
@@ -55,8 +57,13 @@ class UploadFTP:
 
 
     def ping_unpack(self, url):
-        requests.get("http://" + url + "/wypakuj.php", verify=False)
+        code = 0
+        while code != 200:
+            code = requests.get("http://" + url + "/wypakuj.php", verify=False).status_code
+            print(code)
+            if code == 200: break
+            sleep(2)
 
 
 if __name__ == "__main__":
-    pass
+    fpt = UploadFTP("greenwalls.com.pl", "admin@greenwalls.com.pl", "I3lPlTWWEH", "C:/Users/Kuba/Documents/praca/Zaplecza/pliki-artur")
