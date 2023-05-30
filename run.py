@@ -22,7 +22,7 @@ for domain in domains:
     db_user, db_pass, ftp_user, ftp_pass = create.do_stuff(domain)
 
     print("Connecting to FTP")
-    f = UploadFTP(domain, ftp_user, ftp_pass, "C:/Users/Kuba/Documents/praca/Zaplecza/pliki-artur")
+    f = UploadFTP(domain, ftp_user, ftp_pass, "files")
 
     print("Initilazing WP setup")
     wp = Setup_WP(domain)
