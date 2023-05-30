@@ -14,11 +14,12 @@ with open("credentials.json", "r") as creds:
 with open("input.txt", "r") as f:
     domains = f.read().split('\n')
 
-create = Create(credentials["vd07"])
+
 
 
 for domain in domains:
     print(f"======={domain}=======")
+    create = Create(credentials["vd07"])
     db_user, db_pass, ftp_user, ftp_pass = create.do_stuff(domain)
 
     print("Connecting to FTP")
@@ -33,29 +34,29 @@ for domain in domains:
     print("Tweaking WP options")
     wp.setup(uname, pwd)
 
-    """
-    print("Getting API key")
-    wp = Setup_WP(domain)
-    api_key = wp.get_api_key(uname, pwd)
-
-    openai = OpenAI_article(
-          api_key=api_key, 
-          domain_name=domain,
-          wp_login=uname,
-          wp_pass=pwd
-    )
-
-    if topic == '':
-        input(f"O jakiej tematyce pisać artykuły na strone {domain}")
-
-    openai.create_structure(
-          topic=topic,
-          category_num=3,
-          subcategory_num=3, 
-          article_num=3, 
-          header_num=4, 
-          days_delta=7,
-          forward_delta=False
-    )
-    """
     
+"""
+print("Getting API key")
+wp = Setup_WP(domain)
+api_key = wp.get_api_key(uname, pwd)
+
+openai = OpenAI_article(
+        api_key=api_key, 
+        domain_name=domain,
+        wp_login=uname,
+        wp_pass=pwd
+)
+
+if topic == '':
+    input(f"O jakiej tematyce pisać artykuły na strone {domain}")
+
+openai.create_structure(
+        topic=topic,
+        category_num=3,
+        subcategory_num=3, 
+        article_num=3, 
+        header_num=4, 
+        days_delta=7,
+        forward_delta=False
+)
+"""
