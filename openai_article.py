@@ -375,10 +375,10 @@ class OpenAI_article:
 
 if __name__ == "__main__":
     o = OpenAI_article(
-          api_key="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", 
-          domain_name="duo-car.pl",
-          wp_login="admin",
-          wp_pass="nvz1 vkQm eNcd ZZ7d AvVN uXGI"
+          api_key="", 
+          domain_name="",
+          wp_login="",
+          wp_pass=""
     )
     topic = "motoryzacja"
 
