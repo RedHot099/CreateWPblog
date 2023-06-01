@@ -13,22 +13,28 @@ class OpenAI_article:
                  api_key, 
                  domain_name, 
                  wp_login, 
-                 wp_pass
+                 wp_pass,
+                 lang:str = None
                  ) -> None:
         
         openai.api_key = api_key
         self.total_tokens = 0 
         self.model = "gpt-3.5-turbo"
+
+        self.lang = lang
         
         self.url = f"https://{domain_name}/wp-json/wp/v2"
         wp_credentials = wp_login + ":" + wp_pass
         self.wp_token = base64.b64encode(wp_credentials.encode())
 
     
-    def create_categories(self, topic, category_num = 5):
+    def create_categories(self, topic, category_num = 5, lang:str = None):
         prompt = [
             {"role": "system", "content": f"Jesteś ekspertem w temacie {topic} i musisz w krótki i precyzyjny sposób przedstawić informacje."},
-            {"role": "user", "content": f'Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'}
+            {"role": "user", "content": f'''
+            Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -43,10 +49,13 @@ class OpenAI_article:
         return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')]
 
 
-    def create_subcategories(self, category, subcategory_num = 5):
+    def create_subcategories(self, category, subcategory_num = 5, lang:str = None):
         prompt = [
             {"role": "system", "content": f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."},
-            {"role": "user", "content": f'Przygotuj {subcategory_num} nazw podkategorii dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć od 3 do 5x słów.'}
+            {"role": "user", "content": f'''
+            Przygotuj {subcategory_num} nazw podkategorii dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć od 3 do 5x słów.
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -61,10 +70,13 @@ class OpenAI_article:
         return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')]
     
 
-    def write_cat_description(self, text:str) -> str:        
+    def write_cat_description(self, text:str, lang:str = None) -> str:        
         prompt = [
             {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'Napisz opis kategorii o nazwie {text}'}
+            {"role": "user", "content": f'''
+            Napisz opis kategorii o nazwie {text}
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -80,10 +92,13 @@ class OpenAI_article:
         return desc_reponse['choices'][0]['message']['content']
     
 
-    def create_titles(self, topic:str, article_num:int = 5):
+    def create_titles(self, topic:str, article_num:int = 5, lang:str = None):
         prompt = [
             {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'}
+            {"role": "user", "content": f'''
+            Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -98,10 +113,13 @@ class OpenAI_article:
         return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in topic_response['choices'][0]['message']['content'].split('\n')]
     
 
-    def create_headers(self, title:str, header_num:int = 5):
+    def create_headers(self, title:str, header_num:int = 5, lang:str = None):
         prompt = [
             {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu'}
+            {"role": "user", "content": f'''
+            Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -121,10 +139,13 @@ class OpenAI_article:
         return header_prompts, img_prompt
     
 
-    def write_paragraph(self, header:str, title:str):
+    def write_paragraph(self, header:str, title:str, lang:str = None):
         prompt = [
             {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'}
+            {"role": "user", "content": f'''
+            Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -141,10 +162,13 @@ class OpenAI_article:
 
         return p
 
-    def write_description(self, text:str) -> str:
+    def write_description(self, text:str, lang:str = None) -> str:
         prompt = [
             {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'Dla poniższego artykułu napisz dłuższy paragraf podsumowujący jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{text}'}
+            {"role": "user", "content": f'''
+            Dla poniższego artykułu napisz dłuższy paragraf podsumowujący jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{text}
+            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
+            '''}
         ]
 
         while True:
@@ -165,6 +189,16 @@ class OpenAI_article:
             prompt=img_prompt,
             n=1,
             size="512x512"
+        )
+        image_url = response['data'][0]['url']
+        # self.total_tokens += response["usage"]["total_tokens"]
+        return image_url
+    
+    def create_favicon(self, topic):
+        response = openai.Image.create(
+            prompt=f"simple abstract favicon logo with no text for blog about {topic}, cool grid pattern, very small 64x64 logo, pixel art, gradient, simetric, centered, balanced",
+            n=1,
+            size="256x256"
         )
         image_url = response['data'][0]['url']
         # self.total_tokens += response["usage"]["total_tokens"]
@@ -212,6 +246,7 @@ class OpenAI_article:
                          topic:str, 
                          article_num:int, 
                          header_num:int, 
+                         start_date: datetime, 
                          days_delta:int = 7, 
                          forward_delta:bool = True, 
                          cat_id:int = 1
@@ -219,14 +254,14 @@ class OpenAI_article:
 
         print(f"Creating {article_num} articles on topic {topic} - each containg {header_num} sub-sections")
         titles = self.create_titles(topic, article_num)
-
-        publish_date = datetime.now()
         
         for i, title in enumerate(titles):
             print(f"Article {i+1}/{article_num}: {title}")
-            self.create_article(header_num, title, publish_date, cat_id)
+            self.create_article(header_num, title, start_date, cat_id)
 
-            publish_date = publish_date + timedelta(days=days_delta) if forward_delta else publish_date - timedelta(days=days_delta)
+            start_date = start_date + timedelta(days=days_delta) if forward_delta else start_date - timedelta(days=days_delta)
+
+        return start_date
 
 
     def create_structure(self, 
@@ -239,6 +274,7 @@ class OpenAI_article:
                          forward_delta:bool = True
                          ):
         
+        start_date = datetime.now()
         categories = self.create_categories(topic, category_num)
         print(f"Created categories: {categories}")
 
@@ -248,7 +284,7 @@ class OpenAI_article:
             cat_id = cat_json['id']
             print(f"Created category {cat_id}: {cat_json['link']}")
 
-            self.publish_articles(cat, article_num, header_num, days_delta, forward_delta, cat_id)
+            start_date = self.publish_articles(cat, article_num, header_num, start_date, days_delta, forward_delta, cat_id)
             subcats = self.create_subcategories(cat, subcategory_num)
             print(f"Created subcategories: {subcats}")
             for scat in subcats:
@@ -257,12 +293,12 @@ class OpenAI_article:
                 scat_id = scat_json['id']
                 print(f"Created subcategory {scat_id}: {scat_json['link']}")
 
-                self.publish_articles(scat, article_num, header_num, days_delta, forward_delta, scat_id)
+                start_date = self.publish_articles(scat, article_num, header_num, start_date, days_delta, forward_delta, scat_id)
 
 
 
 
-    def create_category(self, name:str, desc:str, parent_id:int = None):
+    def create_category(self, name:str, desc:str, parent_id:int = None) -> json:
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
         post = {
@@ -276,6 +312,7 @@ class OpenAI_article:
             response.json()['id']
         except:
             return self.get_category_id(name)
+        print(f"Created category with ID - {response.json()['id']}")
         return response.json()
     
 
@@ -289,6 +326,7 @@ class OpenAI_article:
 
         for category in categories:
             if category['name'] == category_name:
+                print("Category exists with ID - "+ category['id'])
                 return {'id': category['id'], 'link': category['link']}
     
     
@@ -336,4 +374,20 @@ class OpenAI_article:
 
 
 if __name__ == "__main__":
-    pass
+    o = OpenAI_article(
+          api_key="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", 
+          domain_name="duo-car.pl",
+          wp_login="admin",
+          wp_pass="nvz1 vkQm eNcd ZZ7d AvVN uXGI"
+    )
+    topic = "motoryzacja"
+
+    o.create_structure(
+          topic=topic,
+          category_num=4,
+          subcategory_num=2, 
+          article_num=2, 
+          header_num=6, 
+          days_delta=7,
+          forward_delta=False
+    )
