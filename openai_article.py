@@ -27,14 +27,11 @@ class OpenAI_article:
         wp_credentials = wp_login + ":" + wp_pass
         self.wp_token = base64.b64encode(wp_credentials.encode())
 
-    
-    def create_categories(self, topic, category_num = 5, lang:str = None):
+
+    def ask_openai(self, system:str, user:str):
         prompt = [
-            {"role": "system", "content": f"Jesteś ekspertem w temacie {topic} i musisz w krótki i precyzyjny sposób przedstawić informacje."},
-            {"role": "user", "content": f'''
-            Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
+            {"role": "system", "content": system},
+            {"role": "user", "content": user}
         ]
 
         while True:
@@ -45,143 +42,97 @@ class OpenAI_article:
                 time.sleep(30)
                 continue
             break
+
         self.total_tokens += response["usage"]["total_tokens"]
+
+        return response
+    
+
+    def lang_prompt(self):
+        return " Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""
+
+    
+    def create_categories(self, topic, category_num = 5, lang:str = None):
+        system =  f"Jesteś ekspertem w temacie {topic} i musisz w krótki i precyzyjny sposób przedstawić informacje."
+        user =  f'Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
+        
+        user += self.lang_prompt()
+
+        response = self.ask_openai(system, user)
+        
         return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')]
 
 
     def create_subcategories(self, category, subcategory_num = 5, lang:str = None):
-        prompt = [
-            {"role": "system", "content": f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."},
-            {"role": "user", "content": f'''
-            Przygotuj {subcategory_num} nazw podkategorii dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć od 3 do 5x słów.
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
-        ]
+        system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."
+        user = f'Przygotuj {subcategory_num} nazw podkategorii dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć od 3 do 5x słów.'
 
-        while True:
-            try:
-                response = openai.ChatCompletion.create(model=self.model, messages=prompt)
-            except openai.error.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                continue
-            break
-        self.total_tokens += response["usage"]["total_tokens"]
+        user += self.lang_prompt()
+
+        response = self.ask_openai(system, user)
+
         return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')]
     
 
     def write_cat_description(self, text:str, lang:str = None) -> str:        
-        prompt = [
-            {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'''
-            Napisz opis kategorii o nazwie {text}
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
-        ]
+        system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        user = f'Napisz opis kategorii o nazwie {text}'
 
-        while True:
-            try:
-                desc_reponse = openai.ChatCompletion.create(model=self.model, messages=prompt, max_tokens=200)
-            except openai.error.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                continue
-            break
-        self.total_tokens += desc_reponse["usage"]["total_tokens"]
+        user += self.lang_prompt()
 
-        return desc_reponse['choices'][0]['message']['content']
+        response = self.ask_openai(system, user)
+
+        return response['choices'][0]['message']['content']
     
 
     def create_titles(self, topic:str, article_num:int = 5, lang:str = None):
-        prompt = [
-            {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'''
-            Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
-        ]
+        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
 
-        while True:
-            try:
-                topic_response = openai.ChatCompletion.create(model=self.model, messages=prompt)
-            except openai.error.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                continue
-            break
-        self.total_tokens += topic_response["usage"]["total_tokens"]
-        return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in topic_response['choices'][0]['message']['content'].split('\n')]
+        user += self.lang_prompt()
+            
+        response = self.ask_openai(system, user)
+
+        return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in response['choices'][0]['message']['content'].split('\n')]
     
 
     def create_headers(self, title:str, header_num:int = 5, lang:str = None):
-        prompt = [
-            {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'''
-            Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
-        ]
+        system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu'
 
-        while True:
-            try:
-                headers_response = openai.ChatCompletion.create(model=self.model, messages=prompt)
-            except openai.error.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                continue
-            break
-        self.total_tokens += headers_response["usage"]["total_tokens"]
+        user += self.lang_prompt()
         
-        img_prompt = headers_response['choices'][0]['message']['content'].split('\n')[-1].split(":")[-1]
+        response = self.ask_openai(system, user)
+        
+        img_prompt = response['choices'][0]['message']['content'].split('\n')[-1].split(":")[-1]
 
-        header_prompts = [h[h.replace(")",".").find(". ")+1:].replace("\"", "") for h in headers_response['choices'][0]['message']['content'].split('\n')[:-2]]
+        header_prompts = [h[h.replace(")",".").find(". ")+1:].replace("\"", "") for h in response['choices'][0]['message']['content'].split('\n')[:-2]]
 
         return header_prompts, img_prompt
     
 
     def write_paragraph(self, header:str, title:str, lang:str = None):
-        prompt = [
-            {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'''
-            Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
-        ]
+        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
 
-        while True:
-            try:
-                p_response = openai.ChatCompletion.create(model=self.model, messages=prompt)
-            except openai.error.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                continue
-            break
-        self.total_tokens += p_response["usage"]["total_tokens"]
+        user += self.lang_prompt()
+        
+        response = self.ask_openai(system, user)
 
-        p = p_response['choices'][0]['message']['content']
+        return response['choices'][0]['message']['content']
 
-        return p
 
     def write_description(self, text:str, lang:str = None) -> str:
-        prompt = [
-            {"role": "system", "content": "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."},
-            {"role": "user", "content": f'''
-            Dla poniższego artykułu napisz dłuższy paragraf podsumowujący jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{text}
-            {" Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""}
-            '''}
-        ]
+        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        reduced_text = " ".join(text.split()[:500*4]) if len(text.split()) > 500*4 else text
+        print(len(reduced_text), len(text.split()))
+        user = f'Dla poniższego artykułu napisz 4 zdania podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
 
-        while True:
-            try:
-                desc_reponse = openai.ChatCompletion.create(model=self.model, messages=prompt, max_tokens=200)
-            except openai.error.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                continue
-            break
-        self.total_tokens += desc_reponse["usage"]["total_tokens"]
+        user += self.lang_prompt()
+        
+        response = self.ask_openai(system, user)
 
-        return desc_reponse['choices'][0]['message']['content']
+        return response['choices'][0]['message']['content']
     
 
     def create_img(self, img_prompt):
@@ -191,7 +142,6 @@ class OpenAI_article:
             size="512x512"
         )
         image_url = response['data'][0]['url']
-        # self.total_tokens += response["usage"]["total_tokens"]
         return image_url
     
     def create_favicon(self, topic):
@@ -201,7 +151,6 @@ class OpenAI_article:
             size="256x256"
         )
         image_url = response['data'][0]['url']
-        # self.total_tokens += response["usage"]["total_tokens"]
         return image_url
     
 
@@ -282,7 +231,7 @@ class OpenAI_article:
             cat_desc = self.write_cat_description(cat)
             cat_json = self.create_category(cat, cat_desc)
             cat_id = cat_json['id']
-            print(f"Created category {cat_id}: {cat_json['link']}")
+            print(f"Adding articles to category {cat_id}: {cat_json['link']}")
 
             start_date = self.publish_articles(cat, article_num, header_num, start_date, days_delta, forward_delta, cat_id)
             subcats = self.create_subcategories(cat, subcategory_num)
@@ -291,7 +240,7 @@ class OpenAI_article:
                 scat_desc = self.write_cat_description(scat)
                 scat_json = self.create_category(scat, scat_desc, cat_id)
                 scat_id = scat_json['id']
-                print(f"Created subcategory {scat_id}: {scat_json['link']}")
+                print(f"Adding articles to subcategory {scat_id}: {scat_json['link']}")
 
                 start_date = self.publish_articles(scat, article_num, header_num, start_date, days_delta, forward_delta, scat_id)
 
@@ -326,7 +275,7 @@ class OpenAI_article:
 
         for category in categories:
             if category['name'] == category_name:
-                print("Category exists with ID - "+ category['id'])
+                print(f"Category {category['name']} exists with ID - {category['id']}")
                 return {'id': category['id'], 'link': category['link']}
     
     
@@ -374,20 +323,4 @@ class OpenAI_article:
 
 
 if __name__ == "__main__":
-    o = OpenAI_article(
-          api_key="", 
-          domain_name="",
-          wp_login="",
-          wp_pass=""
-    )
-    topic = "motoryzacja"
-
-    o.create_structure(
-          topic=topic,
-          category_num=4,
-          subcategory_num=2, 
-          article_num=2, 
-          header_num=6, 
-          days_delta=7,
-          forward_delta=False
-    )
+    pass
