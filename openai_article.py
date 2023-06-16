@@ -41,6 +41,10 @@ class OpenAI_article:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
                 continue
+            except:
+                print("Unknown error, waiting & resuming")
+                time.sleep(3)
+                continue
             break
 
         self.total_tokens += response["usage"]["total_tokens"]
@@ -65,7 +69,7 @@ class OpenAI_article:
 
     def create_subcategories(self, category, subcategory_num = 5, lang:str = None):
         system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."
-        user = f'Przygotuj {subcategory_num} nazw podkategorii dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć od 3 do 5x słów.'
+        user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
         user += self.lang_prompt()
 
@@ -124,7 +128,7 @@ class OpenAI_article:
 
     def write_description(self, text:str, lang:str = None) -> str:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
-        reduced_text = " ".join(text.split()[:500*4]) if len(text.split()) > 500*4 else text
+        reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         print(len(reduced_text), len(text.split()))
         user = f'Dla poniższego artykułu napisz 4 zdania podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
 
@@ -247,7 +251,7 @@ class OpenAI_article:
 
 
 
-    def create_category(self, name:str, desc:str, parent_id:int = None) -> json:
+    def create_category(self, name:str, desc:str, parent_id:int = None) -> dict:
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
         post = {
@@ -258,10 +262,11 @@ class OpenAI_article:
 
         response = requests.post(self.url+"/categories", headers=header, json=post)
         try:
+            print(f"Created category with ID - {response.json()['id']}")
             response.json()['id']
         except:
+            print(f"Category {name} already exists")
             return self.get_category_id(name)
-        print(f"Created category with ID - {response.json()['id']}")
         return response.json()
     
 
@@ -277,6 +282,10 @@ class OpenAI_article:
             if category['name'] == category_name:
                 print(f"Category {category['name']} exists with ID - {category['id']}")
                 return {'id': category['id'], 'link': category['link']}
+            
+        print(f"Category {category_name} not really exists")
+        return {'id': 0, 'link': 'no_cat'} 
+
     
     
     def upload_img(self, img):
