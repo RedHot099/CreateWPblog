@@ -19,12 +19,16 @@ class Setup_WP:
 		
 		#login credentials
 		self.url = url
-		
+
 		options = webdriver.ChromeOptions()
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
-		options.add_argument('--headless=new')
+		options.add_argument('--no-sandbox')
+		options.add_argument('--window-size=1420,1080')
+		options.add_argument('--headless')
+		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
-		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+
 		
 	
 	def read(self, path):
@@ -97,6 +101,7 @@ class Setup_WP:
 			self.get_url(f"http://{self.url}/wp-admin/edit.php")
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
 		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
 		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='trash']").click()
 		self.driver.find_element(By.ID, "doaction").click()
@@ -114,6 +119,7 @@ class Setup_WP:
 			self.get_url(f"http://{self.url}/wp-admin/edit.php?post_type=page")
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
 		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
 		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='trash']").click()
 		self.driver.find_element(By.ID, "doaction").click()
