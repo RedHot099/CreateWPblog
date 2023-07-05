@@ -1,6 +1,6 @@
 *.tsv
 credentials*
-input.txt
+*input.txt
 env
 env/*
 files
