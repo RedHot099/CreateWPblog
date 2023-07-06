@@ -34,12 +34,12 @@ class UploadFTP:
             print("Logged into FTP")
             server.cwd('public_html')
             #remove files from FTP (recursively)
-            if not 'dodaj_tagi_artur_v1.php' in server.nlst():
+            if not 'wp-config.php' in server.nlst():
                 self.dir_del_r(server, '')
 
                 #upload files to FTP
-                with open(path + '/wordpress-artur.zip', 'rb') as file:
-                    server.storbinary('STOR wordpress-artur.zip', file)                
+                with open(path + '/wp.zip', 'rb') as file:
+                    server.storbinary('STOR wp.zip', file)                
 
                 with open(path + '/wypakuj.php', 'rb') as file:
                     server.storbinary('STOR wypakuj.php', file)
@@ -52,7 +52,7 @@ class UploadFTP:
 
             
             #clean trash afterwards
-            if 'wordpress-artur.zip' in server.nlst(): server.delete('wordpress-artur.zip')
+            if 'wp.zip' in server.nlst(): server.delete('wp.zip')
             if 'wypakuj.php' in server.nlst(): server.delete('wypakuj.php')
 
 
@@ -66,4 +66,4 @@ class UploadFTP:
 
 
 if __name__ == "__main__":
-    fpt = UploadFTP("greenwalls.com.pl", "admin@greenwalls.com.pl", "I3lPlTWWEH", "C:/Users/Kuba/Documents/praca/Zaplecza/pliki-artur")
+    fpt = UploadFTP("2xtak.edu.pl", "admin@2xtak.edu.pl", "UU9mgyiS", "files")
