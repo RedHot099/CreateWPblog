@@ -135,11 +135,28 @@ class Setup_WP:
 		sleep(1)
 
 
+	def activate_plugins(self):
+		self.get_url(f"http://{self.url}/wp-admin/plugins.php")
+		try:
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
+			self.driver.find_element(By.ID, "cb-select-all-1").click()
+		except:
+			sleep(1)
+			self.get_url(f"http://{self.url}/wp-admin/plugins.php")
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
+			self.driver.find_element(By.ID, "cb-select-all-1").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
+		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
+		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='activate-selected']").click()
+		self.driver.find_element(By.ID, "doaction").click()
+		sleep(5)
+
+
+
 	def checkbox_checked(self, id:str, check:bool):
 		if id == "":
 			return False
 		checkbox = self.driver.find_element(By.ID, id)
-		print(check != (True if checkbox.get_attribute('checked') == "true" else False), checkbox.get_attribute('checked'), check)
 		if check != (True if checkbox.get_attribute('checked') == "true" else False):
 			checkbox.click()
 
@@ -195,6 +212,7 @@ class Setup_WP:
 		self.login(login, pwd)
 		self.delete_posts()
 		self.delete_pages()
+		self.activate_plugins()
 		self.settings()
 		sleep(1)
 		self.driver.close()
