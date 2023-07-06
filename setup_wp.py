@@ -20,11 +20,13 @@ class Setup_WP:
 		#login credentials
 		self.url = url
 
+		self.lang = "pl"
+
 		options = webdriver.ChromeOptions()
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 		options.add_argument('--no-sandbox')
 		options.add_argument('--window-size=1420,1080')
-		options.add_argument('--headless')
+		# options.add_argument('--headless')
 		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
 		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
@@ -39,6 +41,13 @@ class Setup_WP:
 	def start(self):
 		self.get_url(f"http://{self.url}/")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "button")))
+
+		#select language
+		if self.driver.find_element(By.CLASS_NAME, "button").get_attribute("id") == "language-continue":
+			self.driver.find_element(By.CSS_SELECTOR, f"option[lang=\"{self.lang}\"]").click()
+			sleep(1)
+			self.driver.find_element(By.CLASS_NAME, "button").click()
+
 		self.driver.find_element(By.CLASS_NAME, "button").click()
 		sleep(1)
 
@@ -130,7 +139,8 @@ class Setup_WP:
 		if id == "":
 			return False
 		checkbox = self.driver.find_element(By.ID, id)
-		if checkbox.get_attribute('checked') != check:
+		print(check != (True if checkbox.get_attribute('checked') == "true" else False), checkbox.get_attribute('checked'), check)
+		if check != (True if checkbox.get_attribute('checked') == "true" else False):
 			checkbox.click()
 
 	
