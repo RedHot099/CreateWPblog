@@ -130,12 +130,8 @@ class Setup_WP:
 		if id == "":
 			return False
 		checkbox = self.driver.find_element(By.ID, id)
-		if checkbox.get_attribute('checked'):
-			if not check:
-				checkbox.click()
-		else:
-			if check:
-				checkbox.click()
+		if checkbox.get_attribute('checked') != check:
+			checkbox.click()
 
 	
 	def settings(self):
