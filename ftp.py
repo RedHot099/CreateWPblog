@@ -66,4 +66,4 @@ class UploadFTP:
 
 
 if __name__ == "__main__":
-    fpt = UploadFTP("2xtak.edu.pl", "admin@2xtak.edu.pl", "UU9mgyiS", "files")
+    pass
