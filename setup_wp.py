@@ -96,7 +96,10 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "user_login").send_keys(login)
 		self.driver.find_element(By.ID, "user_pass").clear()
 		self.driver.find_element(By.ID, "user_pass").send_keys(pwd)
-		self.driver.find_element(By.ID, "wp-submit").click()
+		try:
+			self.driver.find_element(By.ID, "wp-submit").click()
+		except:
+			print("User already logged in")
 		sleep(1)
 
 
@@ -149,7 +152,7 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
 		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='activate-selected']").click()
 		self.driver.find_element(By.ID, "doaction").click()
-		sleep(5)
+		sleep(15)
 
 
 
@@ -159,6 +162,28 @@ class Setup_WP:
 		checkbox = self.driver.find_element(By.ID, id)
 		if check != (True if checkbox.get_attribute('checked') == "true" else False):
 			checkbox.click()
+
+
+	def setup_menu(self):
+		self.get_url(f"http://{self.url}/wp-admin/nav-menus.php?action=edit&menu=0")
+		try:
+			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "menu-name"))).send_keys("main")
+		except:
+			sleep(3)
+			self.get_url(f"http://{self.url}/wp-admin/nav-menus.php?action=edit&menu=0")
+			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "menu-name"))).send_keys("main")
+		self.driver.find_element(By.ID, "locations-primary").click()
+		self.driver.find_element(By.ID, "locations-secondary").click()
+		self.driver.find_element(By.ID, "save_menu_footer").click()
+		self.driver.find_element(By.ID, "show-settings-link").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "add-shortcode-section-hide"))).click()
+		sleep(2)
+		self.driver.find_element(By.ID, "add-shortcode-section").click()
+		self.driver.find_element(By.ID, "aau-ahcm-shortcode").send_keys("[autocategorymenu hide_empty=\"1\"]")
+		WebDriverWait(self.driver, 33).until(EC.element_to_be_clickable((By.ID, "submit-aau-ahcm"))).click()
+		sleep(2)
+		self.driver.find_element(By.ID, "save_menu_footer").click()
+		sleep(2.5)
 
 	
 	def settings(self):
@@ -198,6 +223,7 @@ class Setup_WP:
 		sleep(0.5)
 		api_key = self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value")
 		print("API KEY: ", api_key)
+		self.driver.close()
 		return api_key
 
 
@@ -213,6 +239,7 @@ class Setup_WP:
 		self.delete_posts()
 		self.delete_pages()
 		self.activate_plugins()
+		self.setup_menu()
 		self.settings()
 		sleep(1)
 		self.driver.close()
