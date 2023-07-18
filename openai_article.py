@@ -30,7 +30,7 @@ class OpenAI_article:
 
     def ask_openai(self, system:str, user:str):
         prompt = [
-            {"role": "system", "content": system},
+            {"role": "system", "content": system + self.lang_prompt()},
             {"role": "user", "content": user}
         ]
 
@@ -53,7 +53,16 @@ class OpenAI_article:
     
 
     def lang_prompt(self):
-        return " Wszystkie treści przygotuj w języku Niemieckim" if self.lang=="de" else ""
+        langs = {
+            "de": " Wszystkie treści przygotuj w języku Niemieckim",
+            "en": " Wszystkie treści przygotuj w języku Angielskim",
+            "sk": " Wszystkie treści przygotuj w języku Słowackim"
+        }
+
+        if self.lang in langs.keys():
+            return langs[self.lang]
+        else:
+            return ""
 
     
     def create_categories(self, topic, category_num = 5, lang:str = None):
@@ -71,8 +80,6 @@ class OpenAI_article:
         system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."
         user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
-        user += self.lang_prompt()
-
         response = self.ask_openai(system, user)
 
         return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')]
@@ -82,8 +89,6 @@ class OpenAI_article:
         system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz opis kategorii o nazwie {text}'
 
-        user += self.lang_prompt()
-
         response = self.ask_openai(system, user)
 
         return response['choices'][0]['message']['content']
@@ -92,8 +97,6 @@ class OpenAI_article:
     def create_titles(self, topic:str, article_num:int = 5, lang:str = None):
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
-
-        user += self.lang_prompt()
             
         response = self.ask_openai(system, user)
 
@@ -103,8 +106,6 @@ class OpenAI_article:
     def create_headers(self, title:str, header_num:int = 5, lang:str = None):
         system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu'
-
-        user += self.lang_prompt()
         
         response = self.ask_openai(system, user)
         
@@ -118,8 +119,6 @@ class OpenAI_article:
     def write_paragraph(self, header:str, title:str, lang:str = None):
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
-
-        user += self.lang_prompt()
         
         response = self.ask_openai(system, user)
 
@@ -131,8 +130,6 @@ class OpenAI_article:
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         print(len(reduced_text), len(text.split()))
         user = f'Dla poniższego artykułu napisz 4 zdania podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
-
-        user += self.lang_prompt()
         
         response = self.ask_openai(system, user)
 
