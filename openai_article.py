@@ -41,8 +41,9 @@ class OpenAI_article:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
                 continue
-            except:
+            except Exception as e:
                 print("Unknown error, waiting & resuming")
+                print(e)
                 time.sleep(3)
                 continue
             break
@@ -87,7 +88,7 @@ class OpenAI_article:
 
     def write_cat_description(self, text:str, lang:str = None) -> str:        
         system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
-        user = f'Napisz opis kategorii o nazwie {text}'
+        user = f'Napisz opis kategorii o nazwie {text} o długości maksymalnie 2 paragrafów'
 
         response = self.ask_openai(system, user)
 
@@ -137,11 +138,20 @@ class OpenAI_article:
     
 
     def create_img(self, img_prompt):
-        response = openai.Image.create(
-            prompt=img_prompt,
-            n=1,
-            size="512x512"
-        )
+        helper = "Na zdjęciu znajdują się tylko przedmioty, ewentualnie martwa natura. "
+        try:
+            response = openai.Image.create(
+                prompt=helper+img_prompt,
+                n=1,
+                size="512x512"
+            )
+        except openai.error.InvalidRequestError:
+            img_prompt = self.ask_openai("Jesteś redaktorem treści na portalu dla dzieci", "Przebuduj to zdanie tak, aby było family friendly - "+img_prompt)
+            response = openai.Image.create(
+                prompt=helper+img_prompt['choices'][0]['message']['content'],
+                n=1,
+                size="512x512"
+            )
         image_url = response['data'][0]['url']
         return image_url
     
