@@ -1,6 +1,7 @@
 *.tsv
 credentials*
 *input.txt
+test.py
 env
 env/*
 __pycache__
