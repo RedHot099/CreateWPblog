@@ -218,7 +218,7 @@ class Setup_WP:
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
 		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 		sleep(0.1)
-		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+date.today().strftime('%d-%m-%Y'))
+		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+date.today().strftime('%d-%m-%Y-%S'))
 		self.driver.find_element(By.ID, "do_new_application_password").click()
 		sleep(0.5)
 		api_key = self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value")
