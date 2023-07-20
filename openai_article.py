@@ -127,10 +127,9 @@ class OpenAI_article:
 
 
     def write_description(self, text:str, lang:str = None) -> str:
-        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem. Napisz tylko jeden paragraf"
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
-        print(len(reduced_text), len(text.split()))
-        user = f'Dla poniższego artykułu napisz 4 zdania podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
+        user = f'Dla poniższego artykułu napisz 4 zdania = jeden paragraf, podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
         
         response = self.ask_openai(system, user)
 
