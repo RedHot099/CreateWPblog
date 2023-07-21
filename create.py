@@ -71,7 +71,10 @@ class Create:
 					i.click()
 					break
 
-			self.driver.find_elements(By.CSS_SELECTOR, "div.dialog-buttons>button")[1].click()
+			try:
+				self.driver.find_elements(By.CSS_SELECTOR, "div.dialog-buttons>button")[1].click()
+			except:
+				print("Brak adresu IP w puli - " + ip)
 
 
 	def add_ssl(self):
