@@ -19,7 +19,7 @@ with open("input.txt", "r") as f:
 
 for domain in domains:
     print(f"======={domain}=======")
-    create = Create(credentials["vd07"])
+    create = Create(credentials["vd"])
     db_user, db_pass, ftp_user, ftp_pass = create.do_stuff(domain)
 
     print("Connecting to FTP")
