@@ -16,10 +16,9 @@ with open("input.txt", "r") as f:
 
 
 
-
 for domain in domains:
     print(f"======={domain}=======")
-    create = Create(credentials["vd07"])
+    create = Create(credentials["vd09"])
     db_user, db_pass, ftp_user, ftp_pass = create.do_stuff(domain)
 
     print("Connecting to FTP")
@@ -33,6 +32,8 @@ for domain in domains:
         output.write(f"{domain}\t{uname}\t{pwd}\n")
     print("Tweaking WP options")
     wp.setup(uname, pwd)
+
+
 
     
 """
