@@ -64,17 +64,25 @@ class OpenAI_article:
             return langs[self.lang]
         else:
             return ""
+        
+
+    def cleanup_category(self, text):
+        text = text.replace("\"","")
+        text = text.replace(")","")
+        cats = text.split('\n')
+        cats = [c[c.find(". ")+2:].title() if c.find(". ")>0 else c.title() for c in cats]
+        return cats
 
     
     def create_categories(self, topic, category_num = 5, lang:str = None):
-        system =  f"Jesteś ekspertem w temacie {topic} i musisz w krótki i precyzyjny sposób przedstawić informacje."
-        user =  f'Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
+        system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
+        user = f'Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'  
         
         user += self.lang_prompt()
 
         response = self.ask_openai(system, user)
         
-        return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')]
+        return self.cleanup_category(response['choices'][0]['message']['content'])
 
 
     def create_subcategories(self, category, subcategory_num = 5, lang:str = None):
