@@ -93,3 +93,9 @@ class WP_api:
 
         response = requests.post(self.url+"/posts", headers=header, json=post)
         return response.json()
+    
+
+
+
+if __name__ == "__main__":
+    pass
