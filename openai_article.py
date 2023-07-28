@@ -104,15 +104,27 @@ class OpenAI_article:
         return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in response['choices'][0]['message']['content'].split('\n')]
     
 
+    def cleanup_header(text, header_num):
+        #cleanup text
+        text = text.replace("\"","")
+        #get img prompt from last line of text
+        img = text.split('\n')[-1]
+        #get headers text from first n lines
+        headers = text.split('\n')
+        headers = [h for h in headers if h]
+        headers = headers[:header_num]
+        #remove numeration from headers
+        headers = [h[h.find(". ")+2:] for h in headers]
+        return headers, img
+
+
     def create_headers(self, title:str, header_num:int = 5, lang:str = None):
-        system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
-        user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu'
+        system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
+        user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu. Nie używaj cudzysłowów.' 
         
         response = self.ask_openai(system, user)
         
-        img_prompt = response['choices'][0]['message']['content'].split('\n')[-1].split(":")[-1]
-
-        header_prompts = [h[h.replace(")",".").find(". ")+1:].replace("\"", "") for h in response['choices'][0]['message']['content'].split('\n')[:-2]]
+        header_prompts, img_prompt = self.cleanup_header(response['choices'][0]['message']['content'], header_num)
 
         return header_prompts, img_prompt
     
