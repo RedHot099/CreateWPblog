@@ -6,6 +6,9 @@ import base64
 from datetime import datetime, timedelta
 import urllib.request
 import os
+from random import randint
+from multiprocessing import Pool
+from functools import partial
 
 
 class OpenAI_article:
@@ -112,7 +115,7 @@ class OpenAI_article:
         return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in response['choices'][0]['message']['content'].split('\n')]
     
 
-    def cleanup_header(text, header_num):
+    def cleanup_header(self, text, header_num):
         #cleanup text
         text = text.replace("\"","")
         #get img prompt from last line of text
@@ -137,13 +140,14 @@ class OpenAI_article:
         return header_prompts, img_prompt
     
 
-    def write_paragraph(self, header:str, title:str, lang:str = None):
+    def write_paragraph(self, title:str, header:str, lang:str = None):
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
         
+        time.sleep(randint(0,3))
         response = self.ask_openai(system, user)
 
-        return response['choices'][0]['message']['content']
+        return header, response['choices'][0]['message']['content']
 
 
     def write_description(self, text:str, lang:str = None) -> str:
@@ -198,12 +202,18 @@ class OpenAI_article:
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
         print("\tWriting sub-sections")
-        for i, h in enumerate(headers):
-            if h != '':
-                print(f"\t\t{i+1}/{header_num}: {h}")
-                p = self.write_paragraph(h, title)
-                text += '<h2>'+h+'</h2>'+p
-                i -= 1
+        func = partial(self.write_paragraph, title)
+        with Pool() as pool:
+            for header, p in pool.imap(func, headers):
+                print(f"\t\tWrote section - {header}")
+                text += '<h2>'+header+'</h2>'+p
+
+        # for i, h in enumerate(headers):
+        #     if h != '':
+        #         print(f"\t\t{i+1}/{header_num}: {h}")
+        #         p = self.write_paragraph(h, title)
+        #         text += '<h2>'+h+'</h2>'+p
+        #         i -= 1
         
         print(f"\tCreating article description")
         desc = self.write_description(text)
