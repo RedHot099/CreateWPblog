@@ -22,6 +22,8 @@ class Create:
 		self.panel = credentials["url"]
 
 		options = webdriver.ChromeOptions()
+		options.add_argument('--no-sandbox')
+		options.add_argument('--disable-dev-shm-usage')
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 		options.add_argument('--headless=new')
 		options.add_argument('ignore-certificate-errors')
@@ -65,13 +67,16 @@ class Create:
 		ip = s.gethostbyname(name)
 		if (self.driver.find_element(By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > section > div.r-table > div.ui-table.scrollbar\:primary > table > tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
 			self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
-			self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
-			for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
-				if i.get_attribute("innerText") == ip:
-					i.click()
-					break
-
-			self.driver.find_elements(By.CSS_SELECTOR, "div.dialog-buttons>button")[1].click()
+			if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") != ip):
+				self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
+				for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
+					if i.get_attribute("innerText") == ip:
+						i.click()
+						break
+			try:
+				self.driver.find_element(By.CSS_SELECTOR, "div.dialog-buttons > button.-theme-primary").click()
+			except:
+				print("Brak adresu IP w puli - " + ip)
 
 
 	def add_ssl(self):
@@ -151,9 +156,4 @@ class Create:
 
 
 if __name__ == "__main__":
-	with open("credentials.json", "r") as creds:
-		credentials = json.load(creds)
-	
-
-	print(credentials["vd20"])
-	z = Create(credentials["vd20"])
+	pass

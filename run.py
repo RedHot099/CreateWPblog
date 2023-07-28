@@ -18,7 +18,11 @@ with open("input.txt", "r") as f:
 
 for domain in domains:
     print(f"======={domain}=======")
+<<<<<<< HEAD
     create = Create(credentials["vd09"])
+=======
+    create = Create(credentials["vd"])
+>>>>>>> fc921bd2ab10fc68b1b351868cb9e6cee382dd9b
     db_user, db_pass, ftp_user, ftp_pass = create.do_stuff(domain)
 
     print("Connecting to FTP")
