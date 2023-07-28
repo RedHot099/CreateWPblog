@@ -36,20 +36,23 @@ class WP_api:
     
 
     def get_category_id(self, category_name):
-        categories_endpoint = f'{self.url}/categories?per_page=100'
-
-        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
-
-        response = requests.get(categories_endpoint, headers=header)
-        categories = response.json()
-
+        categories = self.list_categories()
         for category in categories:
             if category['name'] == category_name:
                 print(f"Category {category['name']} exists with ID - {category['id']}")
                 return {'id': category['id'], 'link': category['link']}
             
         print(f"Category {category_name} not really exists")
-        return {'id': 0, 'link': 'no_cat'} 
+        return {'id': 0, 'link': 'no_cat'}
+    
+
+    def list_categories(self):
+        categories_endpoint = f'{self.url}/categories?per_page=100'
+        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
+
+        response = requests.get(categories_endpoint, headers=header)
+        return response.json()
+
 
     
     
