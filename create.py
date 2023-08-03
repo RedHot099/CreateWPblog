@@ -27,7 +27,7 @@ class Create:
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 		options.add_argument('--headless=new')
 		options.add_argument('ignore-certificate-errors')
-		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+		self.driver = webdriver.Chrome(ChromeDriverManager(version='114.0.5735.90').install(), options=options)
 		
 	
 	def read(self, path):
