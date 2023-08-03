@@ -46,7 +46,7 @@ class WP_api:
         return {'id': 0, 'link': 'no_cat'}
     
 
-    def list_categories(self):
+    def get_categories(self):
         categories_endpoint = f'{self.url}/categories?per_page=100'
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
