@@ -3,12 +3,14 @@ import base64
 import datetime
 
 
-class WP_API:
+class WP_api:
     def __init__(self,
                  domain_name,
                  wp_login,
                  wp_pass
                  ) -> None:
+        
+        
         self.url = f"https://{domain_name}/wp-json/wp/v2"
         wp_credentials = wp_login + ":" + wp_pass
         self.wp_token = base64.b64encode(wp_credentials.encode())
@@ -33,7 +35,16 @@ class WP_API:
         return response.json()
     
 
-    def get_category_id(self, category_name) -> dict:
+    def list_categories(self):
+        categories_endpoint = f'{self.url}/categories?per_page=100'
+
+        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
+
+        response = requests.get(categories_endpoint, headers=header)
+        return response.json()
+    
+
+    def get_category_id(self, category_name):
         categories = self.list_categories()
         for category in categories:
             if category['name'] == category_name:
@@ -44,15 +55,17 @@ class WP_API:
         return {'id': 0, 'link': 'no_cat'}
     
 
-    def get_categories(self) -> dict:
+    def get_categories(self):
         categories_endpoint = f'{self.url}/categories?per_page=100'
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
         response = requests.get(categories_endpoint, headers=header)
         return response.json()
-    
 
-    def upload_img(self, img) -> int:
+
+    
+    
+    def upload_img(self, img):
         header = {"Content-Disposition": f"attachment; filename=\"post_photo.webp\"",
           "Content-Type": "image/webp",
           'Authorization': 'Basic ' + self.wp_token.decode('utf-8')
@@ -74,7 +87,7 @@ class WP_API:
                      categories:int = 1,
                      author_id:int = 1, 
                      comment_status:bool = False
-                     ) -> dict:
+                     ):
         
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
