@@ -1,4 +1,5 @@
 import json
+from time import time
 
 from create import Create
 from ftp import UploadFTP
@@ -10,19 +11,15 @@ with open("credentials.json", "r") as creds:
 		credentials = json.load(creds)
             
 
-
 with open("input.txt", "r") as f:
-    domains = f.read().split('\n')
+    domains = [x.split(' ') for x in f.read().split('\n')]
 
 
 
-for domain in domains:
-    print(f"======={domain}=======")
-<<<<<<< HEAD
-    create = Create(credentials["vd09"])
-=======
+for domain, topic, lang in domains:
+    start_time = time()
+    print("{s:{x}^{n}}".format(s=domain, x='=', n=30))
     create = Create(credentials["vd"])
->>>>>>> fc921bd2ab10fc68b1b351868cb9e6cee382dd9b
     db_user, db_pass, ftp_user, ftp_pass = create.do_stuff(domain)
 
     print("Connecting to FTP")
@@ -36,32 +33,22 @@ for domain in domains:
         output.write(f"{domain}\t{uname}\t{pwd}\n")
     print("Tweaking WP options")
     wp.setup(uname, pwd)
-
-
-
     
-"""
-print("Getting API key")
-wp = Setup_WP(domain)
-api_key = wp.get_api_key(uname, pwd)
+    wp_api_key = wp.get_api_key(uname, pwd)
 
-openai = OpenAI_article(
-        api_key=api_key, 
-        domain_name=domain,
-        wp_login=uname,
-        wp_pass=pwd
-)
 
-if topic == '':
-    input(f"O jakiej tematyce pisać artykuły na strone {domain}")
+    o = OpenAI_article(
+            api_key=credentials["api"],
+            domain_name=domain,
+            wp_login=uname,
+            wp_pass=wp_api_key,
+            lang=lang
+    )
 
-openai.create_structure(
-        topic=topic,
-        category_num=3,
-        subcategory_num=3, 
-        article_num=3, 
-        header_num=4, 
-        days_delta=7,
-        forward_delta=False
-)
-"""
+    o.create_structure(topic, 4, 2)
+
+    o.populate_structure(article_num=2, header_num=6, days_delta=7, forward_delta=False)
+
+    o.populate_structure(article_num=8, header_num=2, days_delta=3, forward_delta=False)
+
+    print(f"{f'{time()-start_time}s':=^30}")

@@ -1,6 +1,6 @@
 from time import sleep
 import socket as s
-from datetime import date
+from datetime import date, datetime
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -29,7 +29,7 @@ class Setup_WP:
 		options.add_argument('--headless')
 		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
-		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager(version='114.0.5735.90').install()), options=options)
 
 		
 	
@@ -218,7 +218,7 @@ class Setup_WP:
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
 		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 		sleep(0.1)
-		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+date.today().strftime('%d-%m-%Y-%S'))
+		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+datetime.now().strftime('%d-%m-%Y-%f'))
 		self.driver.find_element(By.ID, "do_new_application_password").click()
 		sleep(0.5)
 		api_key = self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value")
