@@ -1,6 +1,7 @@
 *.tsv
 credentials*
 *input.txt
+write*.py
 test.py
 env
 env/*
