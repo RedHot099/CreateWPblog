@@ -1,6 +1,6 @@
 import requests
 import base64
-import datetime
+from datetime import datetime
 
 
 class WP_API:
@@ -35,9 +35,8 @@ class WP_API:
         return response.json()
     
 
-    def list_categories(self):
+    def get_categories(self) -> [dict]:
         categories_endpoint = f'{self.url}/categories?per_page=100'
-
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
         response = requests.get(categories_endpoint, headers=header)
@@ -45,7 +44,7 @@ class WP_API:
     
 
     def get_category_id(self, category_name):
-        categories = self.list_categories()
+        categories = self.get_categories()
         for category in categories:
             if category['name'] == category_name:
                 print(f"Category {category['name']} exists with ID - {category['id']}")
@@ -53,16 +52,6 @@ class WP_API:
             
         print(f"Category {category_name} not really exists")
         return {'id': 0, 'link': 'no_cat'}
-    
-
-    def get_categories(self):
-        categories_endpoint = f'{self.url}/categories?per_page=100'
-        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
-
-        response = requests.get(categories_endpoint, headers=header)
-        return response.json()
-
-
     
     
     def upload_img(self, img):
