@@ -97,13 +97,13 @@ class OpenAI_API:
         return response['choices'][0]['message']['content']
     
 
-    def create_titles(self, topic:str, article_num:int = 5) -> [str]:
+    def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> ([str], int):
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
         response = self.ask_openai(system, user)
 
-        return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in response['choices'][0]['message']['content'].split('\n')]
+        return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in response['choices'][0]['message']['content'].split('\n')], cat_id
     
 
     def cleanup_header(self, text, header_num) -> ([str], str):
@@ -116,7 +116,7 @@ class OpenAI_API:
         headers = [h for h in headers if h]
         headers = headers[:header_num]
         #remove numeration from headers
-        headers = [h[h.find(". ")+2:] for h in headers]
+        headers = [h[h.find(". ")+1:].strip() for h in headers]
         return headers, img
 
 
@@ -131,14 +131,14 @@ class OpenAI_API:
         return header_prompts, img_prompt
     
 
-    def write_paragraph(self, title:str, header:str) -> (str, str):
+    def write_paragraph(self, title:str, header:str) -> str:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
         
         time.sleep(randint(0,3))
         response = self.ask_openai(system, user)
 
-        return header, response['choices'][0]['message']['content']
+        return response['choices'][0]['message']['content']
 
 
     def write_description(self, text:str) -> str:
