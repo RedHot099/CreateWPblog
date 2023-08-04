@@ -3,7 +3,7 @@ import base64
 import datetime
 
 
-class WP_api:
+class WP_API:
     def __init__(self,
                  domain_name,
                  wp_login,
