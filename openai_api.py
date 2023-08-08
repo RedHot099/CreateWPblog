@@ -138,7 +138,7 @@ class OpenAI_API:
         time.sleep(randint(0,3))
         response = self.ask_openai(system, user)
 
-        return response['choices'][0]['message']['content']
+        return header, response['choices'][0]['message']['content']
 
 
     def write_description(self, text:str) -> str:
