@@ -29,7 +29,7 @@ class Setup_WP:
 		options.add_argument('--headless')
 		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
-		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager(version='116.0.5845.96').install()), options=options)
 
 		
 	
