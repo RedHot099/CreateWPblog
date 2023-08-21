@@ -10,8 +10,9 @@ class UploadFTP:
                 path:str \
                 ) -> None:
         
+
+        self.wp_file = 'wp.zip'        
         self.do_ftp(host, name, password, path)
-        self.wp_file = 'wp.zip'
 
 
     def read(self, path):
