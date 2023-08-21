@@ -11,6 +11,7 @@ class UploadFTP:
                 ) -> None:
         
         self.do_ftp(host, name, password, path)
+        self.wp_file = 'wp.zip'
 
 
     def read(self, path):
@@ -34,12 +35,12 @@ class UploadFTP:
             print("Logged into FTP")
             server.cwd('public_html')
             #remove files from FTP (recursively)
-            if not 'wp-config.php' in server.nlst():
+            if not 'wp-admin' in server.nlst():
                 self.dir_del_r(server, '')
 
                 #upload files to FTP
-                with open(path + '/wp.zip', 'rb') as file:
-                    server.storbinary('STOR wp.zip', file)                
+                with open(path + '/' + self.wp_file, 'rb') as file:
+                    server.storbinary('STOR ' + self.wp_file, file)                
 
                 with open(path + '/wypakuj.php', 'rb') as file:
                     server.storbinary('STOR wypakuj.php', file)
@@ -52,7 +53,7 @@ class UploadFTP:
 
             
             #clean trash afterwards
-            if 'wp.zip' in server.nlst(): server.delete('wp.zip')
+            if self.wp_file in server.nlst(): server.delete(self.wp_file)
             if 'wypakuj.php' in server.nlst(): server.delete('wypakuj.php')
 
 
