@@ -53,7 +53,10 @@ class Setup_WP:
 
 	
 	def get_url(self, url:str):
-		self.driver.get(url)
+		try:
+			self.driver.get(url)
+		except Exception as e:
+			print(e.message)
 		if self.driver.current_url.split('/')[-1].startswith("upgrade"):
 			self.driver.find_element(By.CLASS_NAME, "button").click()
 			sleep(1.5)
