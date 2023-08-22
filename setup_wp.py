@@ -56,7 +56,7 @@ class Setup_WP:
 		try:
 			self.driver.get(url)
 		except Exception as e:
-			print(e.message)
+			print(e)
 		if self.driver.current_url.split('/')[-1].startswith("upgrade"):
 			self.driver.find_element(By.CLASS_NAME, "button").click()
 			sleep(1.5)
@@ -216,7 +216,7 @@ class Setup_WP:
 		sleep(1)
 
 	def get_api_key(self, login:str, pwd:str):
-		self.login(login, pwd)
+		# self.login(login, pwd)
 		self.get_url(f"http://{self.url}/wp-admin/profile.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
 		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -224,7 +224,7 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+datetime.now().strftime('%d-%m-%Y-%f'))
 		self.driver.find_element(By.ID, "do_new_application_password").click()
 		sleep(0.5)
-		api_key = self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value")
+		api_key = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
 		print("API KEY: ", api_key)
 		self.driver.close()
 		return api_key
@@ -245,7 +245,7 @@ class Setup_WP:
 		self.setup_menu()
 		self.settings()
 		sleep(1)
-		self.driver.close()
+		# self.driver.close()
 	
 
 if __name__ == "__main__":
