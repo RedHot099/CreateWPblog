@@ -36,21 +36,18 @@ class UploadFTP:
             print("Logged into FTP")
             server.cwd('public_html')
             #remove files from FTP (recursively)
-            if not 'wp-admin' in server.nlst():
-                self.dir_del_r(server, '')
+            self.dir_del_r(server, '')
 
-                #upload files to FTP
-                with open(path + '/' + self.wp_file, 'rb') as file:
-                    server.storbinary('STOR ' + self.wp_file, file)                
+            #upload files to FTP
+            with open(path + '/' + self.wp_file, 'rb') as file:
+                server.storbinary('STOR ' + self.wp_file, file)                
 
-                with open(path + '/wypakuj.php', 'rb') as file:
-                    server.storbinary('STOR wypakuj.php', file)
+            with open(path + '/wypakuj.php', 'rb') as file:
+                server.storbinary('STOR wypakuj.php', file)
 
-                #ping to unpack .zip
-                print("Unpacking WordPress")
-                self.ping_unpack(h)
-            else:
-                print("Wordpress already on FTP")
+            #ping to unpack .zip
+            print("Unpacking WordPress")
+            self.ping_unpack(h)
 
             
             #clean trash afterwards
