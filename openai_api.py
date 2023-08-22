@@ -1,11 +1,5 @@
 import openai
-import requests
 import time
-import json
-import base64
-from datetime import datetime, timedelta
-import urllib.request
-import os
 from random import randint
 from multiprocessing import Pool
 from functools import partial
@@ -63,9 +57,11 @@ class OpenAI_API:
         
 
     def cleanup_category(self, text) -> [str]:
+        text = text.replace("\'","")
         text = text.replace("\"","")
         text = text.replace(")","")
         cats = text.split('\n')
+        if len(cats) == 1: cats = text.split(",")
         cats = [c[c.find(". ")+2:].title() if c.find(". ")>0 else c.title() for c in cats]
         return cats
 
@@ -79,9 +75,9 @@ class OpenAI_API:
         return self.cleanup_category(response['choices'][0]['message']['content'])
 
 
-    def create_subcategories(self, category, subcategory_num = 5) -> [str]:
+    def create_subcategories(self, category, topic, subcategory_num = 5) -> [str]:
         system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."
-        user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
+        user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce {topic} podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
         response = self.ask_openai(system, user)
 
