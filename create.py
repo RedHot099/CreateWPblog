@@ -137,22 +137,22 @@ class Create:
 	def do_stuff(self, name:str) -> list[str]:
 		self.login()
 
-		with open("results.tsv", "a+") as output:
-			self.add_domain(name)
-			self.add_ip(name)
-			self.add_ssl()
-			
-			db_user, db_pass = self.add_db(name)
-			ftp_user, ftp_pass = self.add_ftp()				
-			
-			output.write(f'{name}\t{db_user}\t{db_pass}\t{ftp_user}\t{ftp_pass}\n')
-	
-			#close tab and switch to main
-			self.driver.close()
-			self.driver.switch_to.window(self.driver.window_handles[0])
+		# with open("results.tsv", "a+") as output:
+		self.add_domain(name)
+		self.add_ip(name)
+		self.add_ssl()
+		
+		db_user, db_pass = self.add_db(name)
+		ftp_user, ftp_pass = self.add_ftp()				
+		
+		# output.write(f'{name}\t{db_user}\t{db_pass}\t{ftp_user}\t{ftp_pass}\n')
 
-			self.driver.close()
-			return db_user, db_pass, ftp_user, ftp_pass
+		#close tab and switch to main
+		self.driver.close()
+		self.driver.switch_to.window(self.driver.window_handles[0])
+
+		self.driver.close()
+		return db_user, db_pass, ftp_user, ftp_pass
 
 
 
