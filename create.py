@@ -70,6 +70,7 @@ class Create:
 			if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") != ip):
 				self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
 				for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
+					print("Dostępny ip - "+i.get_attribute("innerText"), i.get_attribute("innerText")==ip)
 					if i.get_attribute("innerText") == ip:
 						i.click()
 						break
