@@ -4,8 +4,8 @@ import os
 from random import randint
 from multiprocessing import Pool, Manager
 from functools import partial
-from openai_api import OpenAI_API
-from wp_api import WP_API
+from .openai_api import OpenAI_API
+from .wp_api import WP_API
 
 
 class OpenAI_article(OpenAI_API, WP_API):
@@ -75,27 +75,30 @@ class OpenAI_article(OpenAI_API, WP_API):
     def new_category(self, cat:str, parent_id:int = None) -> int:
         cat_desc = self.write_cat_description(cat)
         cat_json = self.create_category(cat, cat_desc, parent_id)
-        cat_id = cat_json['id']
-        return cat, int(cat_id)
+        return cat, cat_json
 
 
     def create_structure(self, 
                          topic:str, 
                          category_num:int, 
                          subcategory_num:int
-                         ):
+                         ) -> dict:
         #create categories according to site topic
         categories = self.create_categories(topic, category_num)
         print(f"Created categories: {categories}")
+        structure = {}
 
         with Pool() as pool:
             #paralelly for each category create description & subcategories
-            for cat, cat_id in pool.imap(self.new_category, categories):
-                subcats = self.create_subcategories(cat, subcategory_num)
-                print(f"Created subcategories: {subcats} for category {cat}")
-                scats = [(c, cat_id) for c in subcats]
-                for scat, scat_id in pool.starmap(self.new_category, scats):
-                    print(f"Adding articles to subcategory {scat_id}: {scat} scat_json['link']")
+            for cat, cat_json in pool.imap(self.new_category, categories):
+                subcats = self.create_subcategories(cat, topic, subcategory_num)
+                print(f"Created subcategories: {subcats} for category {cat} - {cat_json['link']}")
+                structure[cat] = subcats
+                scats = [(c, cat_json['id']) for c in subcats]
+                for scat, scat_json in pool.starmap(self.new_category, scats):
+                    print(f"Created subcategory {scat_json['id']}: {scat} - {scat_json['link']}")
+
+        return structure
                     
 
     def populate_structure(self, 
