@@ -25,12 +25,11 @@ class WP_API:
             "parent": parent_id
         }
 
-        response = requests.post(self.url+"/categories", headers=header, json=post)
+        response = requests.post(self.url+"/categories", headers=header, json=post, verify = False)
         try:
-            print(f"Created category with ID - {response.json()['id']}")
+            print(f"Created category with ID - {response.json()['id']} - {response.json()['link']}")
             response.json()['id']
         except:
-            print(f"Category {name} already exists")
             return self.get_category_id(name)
         return response.json()
     
@@ -39,7 +38,7 @@ class WP_API:
         categories_endpoint = f'{self.url}/categories?per_page=100'
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
-        response = requests.get(categories_endpoint, headers=header)
+        response = requests.get(categories_endpoint, headers=header, verify = False)
         return response.json()
     
 
@@ -47,7 +46,7 @@ class WP_API:
         categories = self.get_categories()
         for category in categories:
             if category['name'] == category_name:
-                print(f"Category {category['name']} exists with ID - {category['id']}")
+                print(f"Category {category['name']} exists with ID - {category['id']} - {category['link']}")
                 return {'id': category['id'], 'link': category['link']}
             
         print(f"Category {category_name} not really exists")
@@ -62,7 +61,7 @@ class WP_API:
 
         data = open(img, 'rb').read()
 
-        response = requests.post(url=self.url+"/media",data=data,headers=header)
+        response = requests.post(url=self.url+"/media",data=data,headers=header, verify = False)
 
         return response.json()['id']
     
@@ -92,7 +91,7 @@ class WP_API:
         'comment_status' : "open" if comment_status else "closed"
         }
 
-        response = requests.post(self.url+"/posts", headers=header, json=post)
+        response = requests.post(self.url+"/posts", headers=header, json=post, verify = False)
         return response.json()
     
 
