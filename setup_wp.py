@@ -14,13 +14,16 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 class Setup_WP:
 	def __init__(self, 
-                url: str = ""
+                url: str = "", 
+				email: str = "jeichner@verseo.pl",
+				lang: str = "pl"
 				) -> None:
 		
 		#login credentials
 		self.url = url
 
-		self.lang = "pl"
+		self.lang = lang
+		self.email = email
 
 		options = webdriver.ChromeOptions()
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -66,6 +69,11 @@ class Setup_WP:
 
 
 	def connect_db(self, db_name:str, db_pass:str):
+		try:
+			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "dbname")))
+		except:
+			if self.driver.find_element(By.ID, "weblog_title"): return -1
+			
 		self.driver.find_element(By.ID, "dbname").clear()
 		self.driver.find_element(By.ID, "dbname").send_keys(db_name)
 		self.driver.find_element(By.ID, "uname").clear()
@@ -84,7 +92,9 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "user_login").send_keys("admin")
 		uname = self.driver.find_element(By.ID, "user_login").get_attribute("value")
 		pwd = self.driver.find_element(By.ID, "pass1").get_attribute('value')
-		self.driver.find_element(By.ID, "admin_email").send_keys("jeichner@verseo.pl")
+
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "admin_email")))
+		self.driver.find_element(By.ID, "admin_email").send_keys(self.email)
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(1)
 		self.driver.find_element(By.CLASS_NAME, "button").click()
@@ -116,11 +126,15 @@ class Setup_WP:
 			self.get_url(f"http://{self.url}/wp-admin/edit.php")
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
-		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
-		self.driver.find_element(By.ID, "bulk-action-selector-top").click()
-		self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='trash']").click()
-		self.driver.find_element(By.ID, "doaction").click()
-		sleep(1)
+		try:
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
+			self.driver.find_element(By.ID, "bulk-action-selector-top").click()
+			self.driver.find_element(By.ID, "bulk-action-selector-top").find_element(By.XPATH, "//option[@value='trash']").click()
+			self.driver.find_element(By.ID, "doaction").click()
+			sleep(1)
+			return 0
+		except:
+			return -1
 
 
 
@@ -216,7 +230,7 @@ class Setup_WP:
 		sleep(1)
 
 	def get_api_key(self, login:str, pwd:str):
-		# self.login(login, pwd)
+		self.login(login, pwd)
 		self.get_url(f"http://{self.url}/wp-admin/profile.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
 		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -239,13 +253,14 @@ class Setup_WP:
 	
 	def setup(self, login:str, pwd:str):
 		self.login(login, pwd)
-		self.delete_posts()
+		test = self.delete_posts()
+		if test == -1: return -1
 		self.delete_pages()
 		self.activate_plugins()
 		self.setup_menu()
 		self.settings()
 		sleep(1)
-		# self.driver.close()
+		self.driver.close()
 	
 
 if __name__ == "__main__":
