@@ -15,17 +15,17 @@ class Create:
 	def __init__(self, \
 				credentials: dict \
 				) -> None:
-		
 		#login credentials
 		self.user = credentials["login"]
 		self.password = credentials["password"]
 		self.panel = credentials["url"]
 
 		options = webdriver.ChromeOptions()
-		options.add_argument('--no-sandbox')
-		options.add_argument('--disable-dev-shm-usage')
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
-		options.add_argument('--headless=new')
+		options.add_argument('--no-sandbox')
+		options.add_argument('--window-size=1420,1080')
+		options.add_argument('--headless')
+		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 		
