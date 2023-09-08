@@ -1,17 +1,19 @@
 from ftplib import FTP
 import requests
 from time import sleep
+import os
 
 class UploadFTP:
     def __init__(self, \
                 host:str, \
                 name:str, \
                 password:str, \
-                path:str \
+                path:str, \
+                file:str = "wp.zip" \
                 ) -> None:
         
 
-        self.wp_file = 'wp.zip'        
+        self.wp_file = file        
         self.do_ftp(host, name, password, path)
 
 
