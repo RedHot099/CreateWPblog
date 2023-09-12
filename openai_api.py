@@ -93,13 +93,21 @@ class OpenAI_API:
         return response['choices'][0]['message']['content']
     
 
+    def cleanup_titles(self, text, num) -> [str]:
+        titles = text.split('\n')
+        titles = [t.strip() for t in titles if t]
+        titles = titles[:num]
+        titles = [t[t.find(". ")+1:].replace("\"","").replace("\'","") for t in titles]
+        return titles        
+    
+
     def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> ([str], int):
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
         response = self.ask_openai(system, user)
 
-        return [i[i.replace(")",".").find(". ")+1 if i.find(".") else i.find("\"")+1:].replace("\"", "") for i in response['choices'][0]['message']['content'].split('\n')], cat_id
+        return self.cleanup_titles(response['choices'][0]['message']['content'], article_num), cat_id
     
 
     def cleanup_header(self, text, header_num) -> ([str], str):

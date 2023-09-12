@@ -14,10 +14,19 @@ class OpenAI_article(OpenAI_API, WP_API):
                 domain_name, 
                 wp_login, 
                 wp_pass,
-                lang:str = None
-                 ) -> None:
+                lang:str = None, 
+                start_date: datetime = datetime.now(),
+                days_delta:int = 7, 
+                forward_delta:bool = True
+                ) -> None:
         
         self.total_tokens = 0
+        #set publication time & delay parameters
+        self.publish_date = Manager().dict()
+        self.publish_date['t'] = start_date
+
+        self.days_delta = days_delta
+        self.forward_delta = forward_delta
 
         OpenAI_API.__init__(self, api_key, lang)
         WP_API.__init__(self, domain_name, wp_login, wp_pass)
@@ -37,7 +46,8 @@ class OpenAI_article(OpenAI_API, WP_API):
                        header_num:int, 
                        title:str, 
                        cat_id:int = 1,
-                       parallel:bool = False
+                       parallel:bool = False,
+                       path:str = ''
                        ) -> (str, int):
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
@@ -58,18 +68,20 @@ class OpenAI_article(OpenAI_API, WP_API):
         
         desc = self.write_description(text)
         if img_prompt != "":
-            img = self.download_img(img_prompt, f".imgs/test_photo{datetime.now().microsecond}.webp")
+            img = self.download_img(img_prompt, f"{path}.imgs/test_photo{datetime.now().microsecond}.webp")
             
             img_id = self.upload_img(img)
             os.remove(img)
 
-            print(self.post_article(title, text, desc, img_id, self.shift_date(), cat_id)['link'])
+            response = self.post_article(title, text, desc, img_id, self.publish_date['t'], cat_id)['link']
+            print(response)
         else:
             print("No img prompt - TARAPATAS!!")
-            print(self.post_article(title, text, desc, "1", self.shift_date(), cat_id)['link'])
+            print(self.post_article(title, text, desc, "1", self.publish_date['t'], cat_id)['link'])
 
+        self.shift_date()
         print(f"Total tokens used: {self.total_tokens}")
-        return title, cat_id
+        return response
     
 
     def new_category(self, cat:str, parent_id:int = None) -> int:
@@ -103,16 +115,8 @@ class OpenAI_article(OpenAI_API, WP_API):
 
     def populate_structure(self, 
                          article_num:int, 
-                         header_num:int,
-                         start_date: datetime = datetime.now(), 
-                         days_delta:int = 7, 
-                         forward_delta:bool = True
+                         header_num:int
                          ):
-        #set publication time & delay parameters
-        self.publish_date = Manager().dict()
-        self.publish_date['t'] = start_date
-        self.days_delta = days_delta
-        self.forward_delta = forward_delta
         #get categories from WP API
         categories = self.get_categories()
         #create data tuple for each category
