@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import urllib.request
 import os
+import json
 from random import randint
 from multiprocessing import Pool, Manager
 from functools import partial
@@ -48,7 +49,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                        cat_id:int = 1,
                        parallel:bool = False,
                        path:str = ''
-                       ) -> (str, int):
+                       ) -> tuple[str, int]:
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
 
@@ -81,7 +82,7 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         self.shift_date()
         print(f"Total tokens used: {self.total_tokens}")
-        return response
+        return (response, cat_id)
     
 
     def new_category(self, cat:str, parent_id:int = None) -> int:
@@ -115,25 +116,45 @@ class OpenAI_article(OpenAI_API, WP_API):
 
     def populate_structure(self, 
                          article_num:int, 
-                         header_num:int
-                         ):
-        #get categories from WP API
-        categories = self.get_categories()
+                         header_num:int,
+                         categories:[dict] = [],
+                         path:str = ""
+                         ) -> dict:
+        #if no categories get categories from WP API
+        if categories == []:
+            categories = self.get_categories()
+        else:
+            categories = json.loads(categories)
         #create data tuple for each category
-        data_prime = [(c['name'], article_num, c['id']) for c in categories if c['name'] != "Bez kategorii"]
+        data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
 
+        #output dict
+        urls = {}
         #for small articles parallelize writing articles
         if article_num > header_num:
             with Pool() as pool:
                 for titles, cat_id in pool.starmap(self.create_titles, data_prime):
-                    data = [(header_num, t, cat_id) for t in titles]
-                    pool.starmap(self.create_article, data)
+                    data = [(header_num, t, cat_id, False, path) for t in titles]
+                    for res, id in pool.starmap(self.create_article, data):
+                        id = int(id)
+                        if id in urls.keys():
+                            urls[id].append(res)
+                        else:
+                            urls[id] = [res]
         #for big articles parallelize writing sections
         else:
             for d in data_prime:
                 titles, cat_id = self.create_titles(*d)
+                print(d[0]+" - created titles: \n - " + "\n - ".join(titles))
                 for t in titles:
-                    self.create_article(header_num, t, cat_id, parallel=True)
+                    res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path)
+                    id = int(id)
+                    if id in urls.keys():
+                        urls[id].append(res)
+                    else:
+                        urls[id] = [res]
+
+        return urls
 
 
 if __name__ == "__main__":

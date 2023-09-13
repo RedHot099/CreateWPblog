@@ -1,6 +1,10 @@
 import requests
 import base64
 from datetime import datetime
+from random import randint
+
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class WP_API:
@@ -75,9 +79,13 @@ class WP_API:
                      categories:int = 1,
                      author_id:int = 1, 
                      comment_status:bool = False
-                     ):
+                     ) -> dict:
         
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
+
+        #if only date passed roll dice for hour, minutes and seconds
+        if date.hour == 0:
+            date = date.replace(hour=randint(1, 23), minute=randint(1, 59), second=randint(1, 59))
 
         post = {
         'title'         : title,
