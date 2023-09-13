@@ -48,24 +48,41 @@ class OpenAI_article(OpenAI_API, WP_API):
                        title:str, 
                        cat_id:int = 1,
                        parallel:bool = False,
-                       path:str = ''
+                       path:str = '',
+                       links:[dict] = None
                        ) -> tuple[str, int]:
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
 
-        if parallel:
-            data = [(title, h) for h in headers]
-            with Pool() as pool:
-                for header, p in pool.starmap(self.write_paragraph, data):
-                    print(f"\t\tWrote section - {header}")
+        if links:
+            if parallel and len(links) > 1:
+                data = [(h, title, d['keyword'], d['url']) for (d, h) in zip(links, headers[:len(links)])]
+                with Pool() as pool:
+                    for header, p in pool.starmap(self.write_paragraph_linked, data):
+                        print(f"\t\tWrote section - {header}")
+                        text += '<h2>'+header+'</h2>'+p
+                
+            else:
+                for (d, h) in zip(links, headers[:len(links)]):
+                    print(f"{cat_id}\t{title}: {h}\n\t{d['keyword']} => {d['url']}")
+                    header, p = self.write_paragraph_linked(h, title, d['keyword'], d['url'])
                     text += '<h2>'+header+'</h2>'+p
-        else:
-            for i, h in enumerate(headers):
-                if h != '':
-                    print(f"{cat_id}. {title}\t{i+1}/{header_num}: {h}")
+
+            headers = headers[len(links):]
+
+
+        if len(headers) > 0:
+            if parallel:
+                data = [(title, h) for h in headers]
+                with Pool() as pool:
+                    for header, p in pool.starmap(self.write_paragraph, data):
+                        print(f"\t\tWrote section - {header}")
+                        text += '<h2>'+header+'</h2>'+p
+            else:
+                for h in headers:
+                    print(f"{cat_id}\t{title}: {h}")
                     header, p = self.write_paragraph(h, title)
                     text += '<h2>'+header+'</h2>'+p
-                    i -= 1
         
         desc = self.write_description(text)
         if img_prompt != "":
@@ -118,13 +135,17 @@ class OpenAI_article(OpenAI_API, WP_API):
                          article_num:int, 
                          header_num:int,
                          categories:[dict] = [],
-                         path:str = ""
+                         path:str = "",
+                         links:[dict] = []
                          ) -> dict:
         #if no categories get categories from WP API
         if categories == []:
             categories = self.get_categories()
-        else:
+        elif type(categories)==str:
             categories = json.loads(categories)
+        #parse json data
+        if type(links)==str:
+            links = json.loads(links)
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
 
@@ -134,7 +155,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         if article_num > header_num:
             with Pool() as pool:
                 for titles, cat_id in pool.starmap(self.create_titles, data_prime):
-                    data = [(header_num, t, cat_id, False, path) for t in titles]
+                    data = [(header_num, t, cat_id, False, path, links) for t in titles]
                     for res, id in pool.starmap(self.create_article, data):
                         id = int(id)
                         if id in urls.keys():
@@ -147,7 +168,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                 titles, cat_id = self.create_titles(*d)
                 print(d[0]+" - created titles: \n - " + "\n - ".join(titles))
                 for t in titles:
-                    res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path)
+                    res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links)
                     id = int(id)
                     if id in urls.keys():
                         urls[id].append(res)
