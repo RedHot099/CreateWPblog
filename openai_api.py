@@ -23,6 +23,7 @@ class OpenAI_API:
             {"role": "system", "content": system + self.lang_prompt()},
             {"role": "user", "content": user}
         ]
+        time.sleep(randint(0,2))
 
         while True:
             try:
@@ -140,6 +141,15 @@ class OpenAI_API:
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
         
         time.sleep(randint(0,3))
+        response = self.ask_openai(system, user)
+
+        return header, response['choices'][0]['message']['content']
+    
+
+    def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str) -> str:
+        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+        user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=”{url}”>{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Treść wynikowa powinna być gotowym kodem HTML zawierającym m.in. takie znaczniki jak <p>, <a> itp."
+        
         response = self.ask_openai(system, user)
 
         return header, response['choices'][0]['message']['content']
