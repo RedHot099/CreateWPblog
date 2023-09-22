@@ -57,7 +57,7 @@ class OpenAI_API:
             return ""
         
 
-    def cleanup_category(self, text) -> [str]:
+    def cleanup_category(self, text) -> list[str]:
         text = text.replace("\'","")
         text = text.replace("\"","")
         text = text.replace(")","")
@@ -67,7 +67,7 @@ class OpenAI_API:
         return cats
 
     
-    def create_categories(self, topic, category_num = 5) -> [str]:
+    def create_categories(self, topic, category_num = 5) -> list[str]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
         user = f'Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
 
@@ -76,7 +76,7 @@ class OpenAI_API:
         return self.cleanup_category(response['choices'][0]['message']['content'])
 
 
-    def create_subcategories(self, category, topic, subcategory_num = 5) -> [str]:
+    def create_subcategories(self, category, topic, subcategory_num = 5) -> list[str]:
         system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."
         user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce {topic} podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
@@ -94,7 +94,7 @@ class OpenAI_API:
         return response['choices'][0]['message']['content']
     
 
-    def cleanup_titles(self, text, num) -> [str]:
+    def cleanup_titles(self, text, num) -> list[str]:
         titles = text.split('\n')
         titles = [t.strip() for t in titles if t]
         titles = titles[:num]
@@ -102,7 +102,7 @@ class OpenAI_API:
         return titles        
     
 
-    def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> ([str], int):
+    def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> tuple[list[str], int]:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
@@ -111,7 +111,7 @@ class OpenAI_API:
         return self.cleanup_titles(response['choices'][0]['message']['content'], article_num), cat_id
     
 
-    def cleanup_header(self, text, header_num) -> ([str], str):
+    def cleanup_header(self, text, header_num) -> tuple[list[str], int]:
         #cleanup text
         text = text.replace("\"","")
         #get img prompt from last line of text
@@ -125,7 +125,7 @@ class OpenAI_API:
         return headers, img
 
 
-    def create_headers(self, title:str, header_num:int = 5) -> ([str], str):
+    def create_headers(self, title:str, header_num:int = 5) -> tuple[list[str], int]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
         user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu. Nie używaj cudzysłowów.' 
         
@@ -136,7 +136,9 @@ class OpenAI_API:
         return header_prompts, img_prompt
     
 
-    def write_paragraph(self, title:str, header:str) -> str:
+    def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "") -> tuple[str,str]:
+        if (keyword!="" and url!=""):
+            return self.write_paragraph_linked(title, header, keyword, url)
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
         
@@ -146,7 +148,7 @@ class OpenAI_API:
         return header, response['choices'][0]['message']['content']
     
 
-    def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str) -> str:
+    def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str) -> tuple[str,str]:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=”{url}”>{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Treść wynikowa powinna być gotowym kodem HTML zawierającym m.in. takie znaczniki jak <p>, <a> itp."
         
