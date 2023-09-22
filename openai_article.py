@@ -4,7 +4,6 @@ import os
 import json
 from random import randint
 from multiprocessing import Pool, Manager
-from functools import partial
 from .openai_api import OpenAI_API
 from .wp_api import WP_API
 
@@ -54,35 +53,19 @@ class OpenAI_article(OpenAI_API, WP_API):
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
 
-        if links:
-            if parallel and len(links) > 1:
-                data = [(h, title, d['keyword'], d['url']) for (d, h) in zip(links, headers[:len(links)])]
-                with Pool() as pool:
-                    for header, p in pool.starmap(self.write_paragraph_linked, data):
-                        print(f"\t\tWrote section - {header}")
-                        text += '<h2>'+header+'</h2>'+p
-                
-            else:
-                for (d, h) in zip(links, headers[:len(links)]):
-                    print(f"{cat_id}\t{title}: {h}\n\t{d['keyword']} => {d['url']}")
-                    header, p = self.write_paragraph_linked(h, title, d['keyword'], d['url'])
+        links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
+        data = [(h, title, d['keyword'], d['url']) for d, h in zip(links, headers)]
+
+        if parallel:
+            with Pool() as pool:
+                for header, p in pool.starmap(self.write_paragraph, data):
+                    print(f"\t\tWrote section - {header}")
                     text += '<h2>'+header+'</h2>'+p
-
-            headers = headers[len(links):]
-
-
-        if len(headers) > 0:
-            if parallel:
-                data = [(title, h) for h in headers]
-                with Pool() as pool:
-                    for header, p in pool.starmap(self.write_paragraph, data):
-                        print(f"\t\tWrote section - {header}")
-                        text += '<h2>'+header+'</h2>'+p
-            else:
-                for h in headers:
-                    print(f"{cat_id}\t{title}: {h}")
-                    header, p = self.write_paragraph(h, title)
-                    text += '<h2>'+header+'</h2>'+p
+        else:
+            for d in data:
+                print(f"{cat_id}\t{d}")
+                header, p = self.write_paragraph(*d)
+                text += '<h2>'+header+'</h2>'+p
         
         desc = self.write_description(text)
         if img_prompt != "":
@@ -90,13 +73,18 @@ class OpenAI_article(OpenAI_API, WP_API):
             
             img_id = self.upload_img(img)
             os.remove(img)
-
-            response = self.post_article(title, text, desc, img_id, self.publish_date['t'], cat_id)['link']
-            print(response)
         else:
             print("No img prompt - TARAPATAS!!")
-            print(self.post_article(title, text, desc, "1", self.publish_date['t'], cat_id)['link'])
+            img_id = None
 
+        if img_id:
+            print('uploading article')
+            response = self.post_article(title, text, desc, img_id, self.publish_date['t'], cat_id)['link']
+        else:
+            print('no image id - uploading with default image')
+            response = self.post_article(title, text, desc, "1", self.publish_date['t'], cat_id)['link']
+
+        print(response)
         self.shift_date()
         print(f"Total tokens used: {self.total_tokens}")
         return (response, cat_id)
@@ -149,12 +137,17 @@ class OpenAI_article(OpenAI_API, WP_API):
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
 
+        data_titles = []
+        with Pool() as pool:
+            for titles, cat_id in pool.starmap(self.create_titles, data_prime):
+                data_titles.append(titles, cat_id)
+
         #output dict
         urls = {}
         #for small articles parallelize writing articles
         if article_num > header_num:
             with Pool() as pool:
-                for titles, cat_id in pool.starmap(self.create_titles, data_prime):
+                for titles, cat_id in data_titles:
                     data = [(header_num, t, cat_id, False, path, links) for t in titles]
                     for res, id in pool.starmap(self.create_article, data):
                         id = int(id)
@@ -164,9 +157,8 @@ class OpenAI_article(OpenAI_API, WP_API):
                             urls[id] = [res]
         #for big articles parallelize writing sections
         else:
-            for d in data_prime:
-                titles, cat_id = self.create_titles(*d)
-                print(d[0]+" - created titles: \n - " + "\n - ".join(titles))
+            for titles, cat_id in data_titles:
+                print(cat_id+" - created titles: \n - " + "\n - ".join(titles))
                 for t in titles:
                     res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links)
                     id = int(id)
