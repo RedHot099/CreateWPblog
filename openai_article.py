@@ -54,7 +54,8 @@ class OpenAI_article(OpenAI_API, WP_API):
         text = ""
 
         links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
-        data = [(h, title, d['keyword'], d['url']) for d, h in zip(links, headers)]
+        data = [(title, h, d['keyword'], d['url']) for d, h in zip(links, headers)]
+        print(data)
 
         if parallel:
             with Pool() as pool:
@@ -140,7 +141,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         data_titles = []
         with Pool() as pool:
             for titles, cat_id in pool.starmap(self.create_titles, data_prime):
-                data_titles.append(titles, cat_id)
+                data_titles.append((titles, cat_id))
 
         #output dict
         urls = {}
@@ -158,7 +159,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         #for big articles parallelize writing sections
         else:
             for titles, cat_id in data_titles:
-                print(cat_id+" - created titles: \n - " + "\n - ".join(titles))
+                print(str(cat_id)+" - created titles: \n - " + "\n - ".join(titles))
                 for t in titles:
                     res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links)
                     id = int(id)
