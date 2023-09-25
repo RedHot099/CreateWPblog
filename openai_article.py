@@ -142,6 +142,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
 
         data_titles = []
+        print("Creating titles")
         with Pool() as pool:
             for titles, cat_id in pool.starmap(self.create_titles, data_prime):
                 data_titles.append((titles, cat_id))
@@ -162,7 +163,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         #for big articles parallelize writing sections
         else:
             for titles, cat_id in data_titles:
-                print(str(cat_id)+" - created titles: \n - " + "\n - ".join(titles))
+                print(str(cat_id)+" - writing articles: \n - " + "\n - ".join(titles))
                 for t in titles:
                     res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links)
                     id = int(id)
