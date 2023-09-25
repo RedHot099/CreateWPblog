@@ -38,15 +38,15 @@ class WP_API:
         return response.json()
     
 
-    def get_categories(self) -> [dict]:
-        categories_endpoint = f'{self.url}/categories?per_page=100'
+    def get_categories(self, num:int = 100) -> dict:
+        categories_endpoint = f'{self.url}/categories?per_page={num}'
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
 
         response = requests.get(categories_endpoint, headers=header, verify = False)
         return response.json()
     
 
-    def get_category_id(self, category_name):
+    def get_category_id(self, category_name) -> dict:
         categories = self.get_categories()
         for category in categories:
             if category['name'] == category_name:
@@ -57,7 +57,7 @@ class WP_API:
         return {'id': 0, 'link': 'no_cat'}
     
     
-    def upload_img(self, img):
+    def upload_img(self, img) -> int:
         header = {"Content-Disposition": f"attachment; filename=\"post_photo.webp\"",
           "Content-Type": "image/webp",
           'Authorization': 'Basic ' + self.wp_token.decode('utf-8')

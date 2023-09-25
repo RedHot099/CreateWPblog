@@ -32,7 +32,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         WP_API.__init__(self, domain_name, wp_login, wp_pass)
 
 
-    def download_img(self, img_prompt, img_path):
+    def download_img(self, img_prompt, img_path) -> str:
         urllib.request.urlretrieve(self.create_img(img_prompt), img_path)
         return img_path
         
@@ -48,14 +48,13 @@ class OpenAI_article(OpenAI_API, WP_API):
                        cat_id:int = 1,
                        parallel:bool = False,
                        path:str = '',
-                       links:[dict] = None
+                       links:list[dict] = None
                        ) -> tuple[str, int]:
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
 
         links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
         data = [(title, h, d['keyword'], d['url']) for d, h in zip(links, headers)]
-        print(data)
 
         if parallel:
             with Pool() as pool:
@@ -123,9 +122,9 @@ class OpenAI_article(OpenAI_API, WP_API):
     def populate_structure(self, 
                          article_num:int, 
                          header_num:int,
-                         categories:[dict] = [],
+                         categories:list[dict] = [],
                          path:str = "",
-                         links:[dict] = []
+                         links:list[dict] = []
                          ) -> dict:
         #if no categories get categories from WP API
         if categories == []:

@@ -86,7 +86,7 @@ class Setup_WP:
 		sleep(1)
 
 
-	def give_name(self, name: str) -> str:
+	def give_name(self, name: str) -> tuple[str, str]:
 		self.driver.find_element(By.ID, "weblog_title").clear()
 		self.driver.find_element(By.ID, "weblog_title").send_keys(name)
 		self.driver.find_element(By.ID, "user_login").send_keys("admin")
@@ -229,7 +229,7 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(1)
 
-	def get_api_key(self, login:str, pwd:str):
+	def get_api_key(self, login:str, pwd:str) -> str:
 		self.login(login, pwd)
 		self.get_url(f"http://{self.url}/wp-admin/profile.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
@@ -241,10 +241,10 @@ class Setup_WP:
 		api_key = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
 		print("API KEY: ", api_key)
 		self.driver.close()
-		return api_key
+		return str(api_key)
 
 
-	def install(self, db_name:str, db_pass:str, name:str):
+	def install(self, db_name:str, db_pass:str, name:str) -> tuple[str,str]:
 		self.start()
 		self.connect_db(db_name, db_pass)
 		uname, pwd = self.give_name(name)
