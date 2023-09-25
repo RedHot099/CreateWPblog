@@ -68,8 +68,8 @@ class OpenAI_API:
 
     
     def create_categories(self, topic, category_num = 5) -> list[str]:
-        system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
-        user = f'Przygotuj {category_num} nazw kategorii o tematyce {topic} podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
+        system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
+        user = f'Przygotuj {category_num} nazw kategorii o dla strony blogowej o tematyce {topic}, każda z nazw kategorii powinna być powiązana z {topic}, podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
 
         response = self.ask_openai(system, user)
         

@@ -53,8 +53,12 @@ class OpenAI_article(OpenAI_API, WP_API):
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
 
-        links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
-        data = [(title, h, d['keyword'], d['url']) for d, h in zip(links, headers)]
+        if links:
+            links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
+            data = [(title, h, d['keyword'], d['url']) for d, h in zip(links, headers)]
+        else:
+            data = [(title, h) for h in headers]
+
 
         if parallel:
             with Pool() as pool:
