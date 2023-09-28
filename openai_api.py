@@ -48,6 +48,7 @@ class OpenAI_API:
         langs = {
             "de": " Wszystkie treści przygotuj w języku Niemieckim",
             "en": " Wszystkie treści przygotuj w języku Angielskim",
+            "cs": " Wszystkie treści przygotuj w języku Czeskim",
             "sk": " Wszystkie treści przygotuj w języku Słowackim"
         }
 
