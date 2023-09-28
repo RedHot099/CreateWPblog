@@ -10,6 +10,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.wait import WebDriverWait
+import os
 
 
 class Setup_WP:
@@ -32,7 +33,10 @@ class Setup_WP:
 		options.add_argument('--headless')
 		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
-		self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+		if os.path.isfile('/usr/lib/chromium-browser/chromedriver'):
+			self.driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=options)
+		else:
+			self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 
 		
 	
