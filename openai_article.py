@@ -22,8 +22,10 @@ class OpenAI_article(OpenAI_API, WP_API):
         
         self.total_tokens = 0
         #set publication time & delay parameters
-        self.publish_date = Manager().dict()
+        manager = Manager()
+        self.publish_date = manager.dict()
         self.publish_date['t'] = start_date
+        self.titles = manager.list()
 
         self.days_delta = days_delta
         self.forward_delta = forward_delta
@@ -61,10 +63,12 @@ class OpenAI_article(OpenAI_API, WP_API):
 
 
         if parallel:
-            with Pool() as pool:
-                for header, p in pool.starmap(self.write_paragraph, data):
+            with Pool() as pool_p:
+                for header, p in pool_p.starmap(self.write_paragraph, data):
                     print(f"\t\tWrote section - {header}")
                     text += '<h2>'+header+'</h2>'+p
+                pool_p.close()
+                pool_p.join()
         else:
             for d in data:
                 print(f"{cat_id}\t{d}")
@@ -110,15 +114,19 @@ class OpenAI_article(OpenAI_API, WP_API):
         print(f"Created categories: {categories}")
         structure = {}
 
-        with Pool() as pool:
+        with Pool() as pool_cat:
             #paralelly for each category create description & subcategories
-            for cat, cat_json in pool.imap(self.new_category, categories):
+            for cat, cat_json in pool_cat.imap(self.new_category, categories):
                 subcats = self.create_subcategories(cat, topic, subcategory_num)
                 print(f"Created subcategories: {subcats} for category {cat} - {cat_json['link']}")
                 structure[cat] = subcats
                 scats = [(c, cat_json['id']) for c in subcats]
-                for scat, scat_json in pool.starmap(self.new_category, scats):
-                    print(f"Created subcategory {scat_json['id']}: {scat} - {scat_json['link']}")
+                with Pool() as pool_scat:
+                    pool_scat.starmap(self.new_category, scats)
+                    pool_scat.close()
+                    pool_scat.join()
+            pool_cat.close()
+            pool_cat.join()
 
         return structure
                     
@@ -141,28 +149,37 @@ class OpenAI_article(OpenAI_API, WP_API):
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
 
-        data_titles = []
+        # data_titles = []
         print("Creating titles")
-        with Pool() as pool:
-            for titles, cat_id in pool.starmap(self.create_titles, data_prime):
-                data_titles.append((titles, cat_id))
+        if 1:
+            with Pool() as pool_titles:
+                for titles, cat_id in pool_titles.starmap(self.create_titles, data_prime):
+                    self.titles.append((titles, cat_id))
+                pool_titles.close()
+                pool_titles.join()
+        else:
+            for d in data_prime:
+                self.titles.append(self.create_titles(*d))
 
         #output dict
         urls = {}
+        print(self.titles)
         #for small articles parallelize writing articles
         if article_num > header_num:
-            with Pool() as pool:
-                for titles, cat_id in data_titles:
+            with Pool() as pool_h:
+                for titles, cat_id in self.titles:
                     data = [(header_num, t, cat_id, False, path, links) for t in titles]
-                    for res, id in pool.starmap(self.create_article, data):
+                    for res, id in pool_h.starmap(self.create_article, data):
                         id = int(id)
                         if id in urls.keys():
                             urls[id].append(res)
                         else:
                             urls[id] = [res]
+                pool_h.close()
+                pool_h.join()
         #for big articles parallelize writing sections
         else:
-            for titles, cat_id in data_titles:
+            for titles, cat_id in self.titles:
                 print(str(cat_id)+" - writing articles: \n - " + "\n - ".join(titles))
                 for t in titles:
                     res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links)
@@ -172,6 +189,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                     else:
                         urls[id] = [res]
 
+        print(urls)
         return urls
 
 
