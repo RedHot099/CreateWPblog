@@ -17,6 +17,13 @@ class OpenAI_API:
 
         self.lang = lang
 
+        self.langs = {
+            "de": " Odpowiedz w języku Niemieckim - Reply in German language.",
+            "en": " Odpowiedz w języku Angielskim - Reply in English language.",
+            "cs": " Odpowiedz w języku Czeskim - Reply in Czech language.",
+            "sk": " Odpowiedz w języku Słowackim - Reply in Slovak language."
+        }
+
 
     def ask_openai(self, system:str, user:str) -> dict:
         prompt = [
@@ -45,15 +52,8 @@ class OpenAI_API:
     
 
     def lang_prompt(self) -> str:
-        langs = {
-            "de": " Wszystkie treści przygotuj w języku Niemieckim",
-            "en": " Wszystkie treści przygotuj w języku Angielskim",
-            "cs": " Wszystkie treści przygotuj w języku Czeskim",
-            "sk": " Wszystkie treści przygotuj w języku Słowackim"
-        }
-
-        if self.lang in langs.keys():
-            return langs[self.lang]
+        if self.lang in self.langs.keys():
+            return self.langs[self.lang]
         else:
             return ""
         
