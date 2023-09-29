@@ -18,6 +18,7 @@ class OpenAI_API:
         self.lang = lang
 
         self.langs = {
+            "pl": "",
             "de": " Odpowiedz w języku Niemieckim - Reply in German language.",
             "en": " Odpowiedz w języku Angielskim - Reply in English language.",
             "cs": " Odpowiedz w języku Czeskim - Reply in Czech language.",
