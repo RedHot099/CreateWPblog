@@ -56,6 +56,9 @@ class OpenAI_API:
             return self.langs[self.lang]
         else:
             return ""
+
+    def get_langs(self) -> list[str]:
+        return self.langs.keys()
         
 
     def cleanup_category(self, text) -> list[str]:
