@@ -9,25 +9,29 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+import os
 
 
 class Create:
 	def __init__(self, \
 				credentials: dict \
 				) -> None:
-		
 		#login credentials
 		self.user = credentials["login"]
 		self.password = credentials["password"]
 		self.panel = credentials["url"]
 
 		options = webdriver.ChromeOptions()
-		options.add_argument('--no-sandbox')
-		options.add_argument('--disable-dev-shm-usage')
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
-		options.add_argument('--headless=new')
+		options.add_argument('--no-sandbox')
+		options.add_argument('--window-size=1420,1080')
+		options.add_argument('--headless')
+		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
-		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+		if os.path.isfile('/usr/lib/chromium-browser/chromedriver'):
+			self.driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=options)
+		else:
+			self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
 		
 	
 	def read(self, path):
