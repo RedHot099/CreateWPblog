@@ -141,9 +141,9 @@ class OpenAI_API:
         return header_prompts, img_prompt
     
 
-    def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "") -> tuple[str,str]:
+    def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str,str]:
         if (keyword!="" and url!=""):
-            return self.write_paragraph_linked(title, header, keyword, url)
+            return self.write_paragraph_linked(title, header, keyword, url, nofollow)
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
         
@@ -153,13 +153,38 @@ class OpenAI_API:
         return header, response['choices'][0]['message']['content']
     
 
-    def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str) -> tuple[str,str]:
+    def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str,str]:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
-        user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=”{url}”>{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Treść wynikowa powinna być gotowym kodem HTML zawierającym m.in. takie znaczniki jak <p>, <a> itp."
+        user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=\"{url}\">{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Treść wynikowa powinna być gotowym kodem HTML zawierającym m.in. takie znaczniki jak <p>, <a> itp."
         
         response = self.ask_openai(system, user)
 
-        return header, response['choices'][0]['message']['content']
+        text = response['choices'][0]['message']['content']
+
+        chance = randint(0,100)
+        nf = ""
+        if nofollow > chance:
+            nf = " rel=\"nofollow\""
+            start = text.find("<a")
+            end = start + text[start:].find(">")
+            text = text[:end] + nf + text[end:]
+
+        if text.find("<a href=\"{url}\">{keyword}</a>") > 0:
+            return header, text
+        elif text.find("<a href=\"{url}\"") > 0:
+            #swap the keword
+            start = text.find("<a href=\"{url}\"")
+            start += text[start:].find(">")
+            end = start + text[start:].find("</a>")
+            return header, text[:start+1]+keyword+text[end:]
+        elif text.find("<a"):
+            #swap link&keyword
+            start = text.find("<a")
+            end = start + text[start:].find("</a>")
+            return header, text[:start+2] + f" href=\"{url}\"{nf}>{keyword}" + text[end:]
+        else:
+            #generate again
+            return self.write_paragraph_linked(title, header, keyword, url, nofollow)
 
 
     def write_description(self, text:str) -> str:
