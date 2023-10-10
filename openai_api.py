@@ -163,7 +163,7 @@ class OpenAI_API:
 
         chance = randint(0,100)
         nf = ""
-        if nofollow > chance:
+        if int(nofollow) > chance:
             nf = " rel=\"nofollow\""
             start = text.find("<a")
             end = start + text[start:].find(">")
