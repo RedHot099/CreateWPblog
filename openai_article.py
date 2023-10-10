@@ -135,10 +135,11 @@ class OpenAI_article(OpenAI_API, WP_API):
     def populate_structure(self, 
                          article_num:int, 
                          header_num:int,
-                         categories:list[dict] | str = [],
+                         categories:list[dict] = [],
                          path:str = "",
                          links:list[dict] = [],
-                         nofollow:int = 0
+                         nofollow:int = 0, 
+                         topic:str = ""
                          ) -> dict:
         #if no categories get categories from WP API
         if categories == []:
@@ -150,20 +151,27 @@ class OpenAI_article(OpenAI_API, WP_API):
             links = json.loads(links)
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
+        if len(data_prime) == 0:
+            data_prime = [(topic, article_num, 1)]
 
-        if 1:
-            with Pool() as pool_titles:
-                for titles, cat_id in pool_titles.starmap(self.create_titles, data_prime):
-                    self.titles.append((titles, cat_id))
-                pool_titles.close()
-                pool_titles.join()
-        else:
-            for d in data_prime:
-                self.titles.append(self.create_titles(*d))
+
+        while len(self.titles) < len(categories):
+            if len(data_prime) > 1:
+                with Pool() as pool_titles:
+                    for titles, cat_id in pool_titles.starmap(self.create_titles, data_prime):
+                        self.titles.append((titles, cat_id))
+                    pool_titles.close()
+                    pool_titles.join()
+            else:
+                for d in data_prime:
+                    titles = self.create_titles(*d)
+                    print(titles)
+                    self.titles.append(titles)
 
         #output dict
         urls = {}
-        print("Article tites - ", self.titles)
+        self.titles = self.titles[:len(categories)]
+        print("Article tites - ", len(self.titles), self.titles)
         #for small articles parallelize writing articles
         if article_num > header_num:
             with Pool() as pool_h:
