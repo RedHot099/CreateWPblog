@@ -54,7 +54,7 @@ class Create:
 		self.driver.execute_script(f"window.open('http://{self.panel}/user/domains/add-domain');")
 		sleep(1)
 		self.driver.switch_to.window(self.driver.window_handles[1])
-		# sleep(2)
+		sleep(1)
 		WebDriverWait(self.driver, 33).until(EC.element_to_be_clickable((By.TAG_NAME, "input")))
 		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys(name)
 		sleep(1)
@@ -66,10 +66,10 @@ class Create:
 		#Adding domain
 		sleep(1)
 		self.driver.get(f'http://{self.panel}/user/domains/domain/{name}/ips')
-		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > section > div.r-table > div.ui-table.scrollbar\:primary > table > tbody.q-virtual-scroll__content > tr > td:nth-child(2)")))
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.q-virtual-scroll__content")))
 		# sleep(1)
 		ip = s.gethostbyname(name)
-		if (self.driver.find_element(By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > section > div.r-table > div.ui-table.scrollbar\:primary > table > tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
+		if (self.driver.find_element(By.CSS_SELECTOR, "tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
 			self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
 			if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") != ip):
 				self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
@@ -79,7 +79,7 @@ class Create:
 						i.click()
 						break
 			try:
-				self.driver.find_element(By.CSS_SELECTOR, "div.dialog-buttons > button.-theme-primary").click()
+				self.driver.find_element(By.CSS_SELECTOR, "button.-theme-primary.-size-big").click()
 			except:
 				print("Brak adresu IP w puli - " + ip)
 
@@ -91,7 +91,7 @@ class Create:
 		# sleep(1)
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.input-checkbox-control")))
 		self.driver.find_elements(By.CSS_SELECTOR, "div.input-checkbox-control")[0].click()
-		self.driver.find_element(By.CSS_SELECTOR, "body > div.app.fx\:cross\:stretch.width\:100\% > div.standard-2021-layout > main > section > div > div.standard-page-wrapper > div.standard-page-content > div:nth-child(1) > div > div > div.formElement-content.fxi\:grow\:true.fxi\:shrink\:true.fx\:dir\:row.fx\:cross\:center.fx\:equalWidth\:true > div > div > button").click()	
+		self.driver.find_element(By.CSS_SELECTOR, "button.-theme-safe").click()	
 		sleep(0.2)
 
 
