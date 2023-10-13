@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import urllib.request
 import os
 import json
-from random import randint
+from random import randint, shuffle
 from multiprocessing import Pool, Manager
 from openai_api import OpenAI_API
 from wp_api import WP_API
@@ -50,14 +50,15 @@ class OpenAI_article(OpenAI_API, WP_API):
                        cat_id:int = 1,
                        parallel:bool = False,
                        path:str = '',
-                       links:list[dict] = None
+                       links:list[dict] = None,
+                       nofollow:int = 0
                        ) -> tuple[str, int]:
         headers, img_prompt = self.create_headers(title,header_num)
         text = ""
 
         if links:
             links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
-            data = [(title, h, d['keyword'], d['url']) for d, h in zip(links, headers)]
+            data = [(title, h, d['keyword'], d['url'], nofollow) for d, h in zip(links, headers)]
         else:
             data = [(title, h) for h in headers]
 
@@ -136,7 +137,9 @@ class OpenAI_article(OpenAI_API, WP_API):
                          header_num:int,
                          categories:list[dict] = [],
                          path:str = "",
-                         links:list[dict] = []
+                         links:list[dict] = [],
+                         nofollow:int = 0, 
+                         topic:str = ""
                          ) -> dict:
         #if no categories get categories from WP API
         if categories == []:
@@ -148,27 +151,32 @@ class OpenAI_article(OpenAI_API, WP_API):
             links = json.loads(links)
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
+        if len(data_prime) == 0:
+            data_prime = [(topic, article_num, 1)]
 
-        # data_titles = []
-        print("Creating titles")
-        if 1:
-            with Pool() as pool_titles:
-                for titles, cat_id in pool_titles.starmap(self.create_titles, data_prime):
-                    self.titles.append((titles, cat_id))
-                pool_titles.close()
-                pool_titles.join()
-        else:
-            for d in data_prime:
-                self.titles.append(self.create_titles(*d))
+
+        while len(self.titles) < len(categories):
+            if len(data_prime) > 1:
+                with Pool() as pool_titles:
+                    for titles, cat_id in pool_titles.starmap(self.create_titles, data_prime):
+                        self.titles.append((titles, cat_id))
+                    pool_titles.close()
+                    pool_titles.join()
+            else:
+                for d in data_prime:
+                    titles = self.create_titles(*d)
+                    print(titles)
+                    self.titles.append(titles)
 
         #output dict
         urls = {}
-        print(self.titles)
+        self.titles = self.titles[:len(categories)]
+        print("Article tites - ", len(self.titles), self.titles)
         #for small articles parallelize writing articles
         if article_num > header_num:
             with Pool() as pool_h:
                 for titles, cat_id in self.titles:
-                    data = [(header_num, t, cat_id, False, path, links) for t in titles]
+                    data = [(header_num, t, cat_id, False, path, links, nofollow) for t in titles]
                     for res, id in pool_h.starmap(self.create_article, data):
                         id = int(id)
                         if id in urls.keys():
@@ -182,7 +190,7 @@ class OpenAI_article(OpenAI_API, WP_API):
             for titles, cat_id in self.titles:
                 print(str(cat_id)+" - writing articles: \n - " + "\n - ".join(titles))
                 for t in titles:
-                    res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links)
+                    res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links, nofollow=nofollow)
                     id = int(id)
                     if id in urls.keys():
                         urls[id].append(res)
