@@ -4,8 +4,8 @@ import os
 import json
 from random import randint
 from multiprocessing import Pool, Manager
-from .openai_api import OpenAI_API
-from .wp_api import WP_API
+from openai_api import OpenAI_API
+from wp_api import WP_API
 
 
 class OpenAI_article(OpenAI_API, WP_API):
