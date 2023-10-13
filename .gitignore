@@ -3,6 +3,7 @@ credentials*
 *input.txt
 write*.py
 test.py
+get_key.py
 env
 env/*
 __pycache__

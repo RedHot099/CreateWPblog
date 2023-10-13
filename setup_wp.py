@@ -30,8 +30,8 @@ class Setup_WP:
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 		options.add_argument('--no-sandbox')
 		options.add_argument('--window-size=1420,1080')
-		options.add_argument('--headless')
-		options.add_argument('--disable-gpu')
+		# options.add_argument('--headless')
+		# options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
 		if os.path.isfile('/usr/lib/chromium-browser/chromedriver'):
 			self.driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=options)
@@ -107,7 +107,7 @@ class Setup_WP:
 	
 		
 	def login(self, login:str, pwd: str):
-		self.get_url(f"http://{self.url}/wp-admin")
+		self.get_url(f"https://{self.url}/wp-login.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "user_login")))
 		self.driver.find_element(By.ID, "user_login").clear()
 		self.driver.find_element(By.ID, "user_login").send_keys(login)
@@ -118,6 +118,14 @@ class Setup_WP:
 		except:
 			print("User already logged in")
 		sleep(1)
+		try:
+			self.driver.find_element(By.ID, "login_error")
+			return 0
+		except:
+			WebDriverWait(self.driver, 15).until(
+				lambda driver: EC.presence_of_element_located((By.ID, "wpwrap")) or EC.presence_of_element_located((By.CSS_SELECTOR, "h1.admin-email__heading"))
+				)
+			return 1
 
 
 	def delete_posts(self):
@@ -234,16 +242,22 @@ class Setup_WP:
 		sleep(1)
 
 	def get_api_key(self, login:str, pwd:str) -> str:
-		self.login(login, pwd)
-		self.get_url(f"http://{self.url}/wp-admin/profile.php")
-		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
+		logged = self.login(login, pwd)
+		if(not logged):
+			return "Wrong password"
+		self.get_url(f"https://{self.url}/wp-admin/profile.php")
+		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
 		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 		sleep(0.1)
 		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+datetime.now().strftime('%d-%m-%Y-%f'))
 		self.driver.find_element(By.ID, "do_new_application_password").click()
 		sleep(0.5)
-		api_key = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
-		print("API KEY: ", api_key)
+		api_key = WebDriverWait(self.driver, 6).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
+		try:
+			print("API KEY: ", api_key)
+		except:
+			api_key = "Error"
+			print("Error obtaining API key")
 		self.driver.close()
 		return str(api_key)
 
