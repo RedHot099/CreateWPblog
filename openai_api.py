@@ -205,7 +205,7 @@ class OpenAI_API:
                 n=1,
                 size="512x512"
             )
-        except opnai.error.InvalidRequestError:
+        except openai.error.InvalidRequestError:
             img_prompt = self.ask_openai("Jesteś redaktorem treści na portalu dla dzieci", "Przebuduj to zdanie tak, aby było family friendly - "+img_prompt)
             response = openai.Image.create(
                 prompt=helper+img_prompt['choices'][0]['message']['content'],
