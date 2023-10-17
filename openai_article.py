@@ -52,8 +52,8 @@ class OpenAI_article(OpenAI_API, WP_API):
                        path:str = '',
                        links:list[dict] = None,
                        nofollow:int = 0
-                       ) -> tuple[str, int]:
-        headers, img_prompt = self.create_headers(title,header_num)
+                       ) -> tuple[str, int, int]:
+        headers, img_prompt, tokens = self.create_headers(title,header_num)
         text = ""
 
         if links:
@@ -65,18 +65,21 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         if parallel:
             with Pool() as pool_p:
-                for header, p in pool_p.starmap(self.write_paragraph, data):
+                for header, p, t in pool_p.starmap(self.write_paragraph, data):
                     print(f"\t\tWrote section - {header}")
                     text += '<h2>'+header+'</h2>'+p
+                    tokens += t
                 pool_p.close()
                 pool_p.join()
         else:
             for d in data:
                 print(f"{cat_id}\t{d}")
-                header, p = self.write_paragraph(*d)
+                header, p, t = self.write_paragraph(*d)
                 text += '<h2>'+header+'</h2>'+p
+                tokens += t
         
-        desc = self.write_description(text)
+        desc, t = self.write_description(text)
+        tokens += t
         if img_prompt != "":
             img = self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
             
@@ -95,14 +98,14 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         print(response)
         self.shift_date()
-        print(f"Total tokens used: {self.total_tokens}")
-        return (response, cat_id)
+        print(f"Total tokens used: {tokens}")
+        return response, cat_id, tokens
     
 
-    def new_category(self, cat:str, parent_id:int = None) -> int:
-        cat_desc = self.write_cat_description(cat)
+    def new_category(self, cat:str, parent_id:int = None) -> tuple[int, dict, int]:
+        cat_desc, tokens = self.write_cat_description(cat)
         cat_json = self.create_category(cat, cat_desc, parent_id)
-        return cat, cat_json
+        return cat, cat_json, tokens
 
 
     def create_structure(self, 
@@ -111,13 +114,14 @@ class OpenAI_article(OpenAI_API, WP_API):
                          subcategory_num:int
                          ) -> dict:
         #create categories according to site topic
-        categories = self.create_categories(topic, category_num)
+        categories, tokens = self.create_categories(topic, category_num)
         print(f"Created categories: {categories}")
         structure = {}
 
         with Pool() as pool_cat:
             #paralelly for each category create description & subcategories
-            for cat, cat_json in pool_cat.imap(self.new_category, categories):
+            for cat, cat_json, t in pool_cat.imap(self.new_category, categories):
+                tokens += t
                 subcats = self.create_subcategories(cat, topic, subcategory_num)
                 print(f"Created subcategories: {subcats} for category {cat} - {cat_json['link']}")
                 structure[cat] = subcats
@@ -129,7 +133,7 @@ class OpenAI_article(OpenAI_API, WP_API):
             pool_cat.close()
             pool_cat.join()
 
-        return structure
+        return structure, tokens
                     
 
     def populate_structure(self, 
@@ -154,19 +158,21 @@ class OpenAI_article(OpenAI_API, WP_API):
         if len(data_prime) == 0:
             data_prime = [(topic, article_num, 1)]
 
-
+        tokens = 0
         while len(self.titles) < len(categories):
             if len(data_prime) > 1:
                 with Pool() as pool_titles:
-                    for titles, cat_id in pool_titles.starmap(self.create_titles, data_prime):
+                    for titles, cat_id, t in pool_titles.starmap(self.create_titles, data_prime):
+                        tokens += t
                         self.titles.append((titles, cat_id))
                     pool_titles.close()
                     pool_titles.join()
             else:
                 for d in data_prime:
-                    titles = self.create_titles(*d)
+                    titles, cat_id, t = self.create_titles(*d)
+                    tokens += t
                     print(titles)
-                    self.titles.append(titles)
+                    self.titles.append((titles, cat_id))
 
         #output dict
         urls = {}
@@ -177,7 +183,8 @@ class OpenAI_article(OpenAI_API, WP_API):
             with Pool() as pool_h:
                 for titles, cat_id in self.titles:
                     data = [(header_num, t, cat_id, False, path, links, nofollow) for t in titles]
-                    for res, id in pool_h.starmap(self.create_article, data):
+                    for res, id, t in pool_h.starmap(self.create_article, data):
+                        tokens += t
                         id = int(id)
                         if id in urls.keys():
                             urls[id].append(res)
@@ -190,7 +197,8 @@ class OpenAI_article(OpenAI_API, WP_API):
             for titles, cat_id in self.titles:
                 print(str(cat_id)+" - writing articles: \n - " + "\n - ".join(titles))
                 for t in titles:
-                    res, id = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links, nofollow=nofollow)
+                    res, id, t = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links, nofollow=nofollow)
+                    tokens += t
                     id = int(id)
                     if id in urls.keys():
                         urls[id].append(res)
@@ -198,6 +206,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                         urls[id] = [res]
 
         print(urls)
+        print(f"Tokens used: {tokens}")
         return urls
 
 
