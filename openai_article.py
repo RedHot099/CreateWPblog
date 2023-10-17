@@ -78,7 +78,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         
         desc = self.write_description(text)
         if img_prompt != "":
-            img = self.download_img(img_prompt, f"{path}.imgs/test_photo{datetime.now().microsecond}.webp")
+            img = self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
             
             img_id = self.upload_img(img)
             os.remove(img)
