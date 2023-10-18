@@ -11,7 +11,7 @@ class OpenAI_API:
                  lang:str = None
                  ) -> None:
         
-        openai.api_key = api_key
+        self.openai_key = api_key
         self.total_tokens = 0 
         self.model = "gpt-3.5-turbo"
 
@@ -27,6 +27,7 @@ class OpenAI_API:
 
 
     def ask_openai(self, system:str, user:str) -> dict:
+        openai.api_key = self.openai_key
         prompt = [
             {"role": "system", "content": system + self.lang_prompt()},
             {"role": "user", "content": user}
