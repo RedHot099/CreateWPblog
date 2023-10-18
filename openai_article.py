@@ -122,7 +122,8 @@ class OpenAI_article(OpenAI_API, WP_API):
             #paralelly for each category create description & subcategories
             for cat, cat_json, t in pool_cat.imap(self.new_category, categories):
                 tokens += t
-                subcats = self.create_subcategories(cat, topic, subcategory_num)
+                subcats, subc_t = self.create_subcategories(cat, topic, subcategory_num)
+                tokens += subc_t
                 print(f"Created subcategories: {subcats} for category {cat} - {cat_json['link']}")
                 structure[cat] = subcats
                 scats = [(c, cat_json['id']) for c in subcats]
