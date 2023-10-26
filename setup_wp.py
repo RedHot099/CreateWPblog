@@ -17,11 +17,15 @@ class Setup_WP:
 	def __init__(self, 
                 url: str = "", 
 				email: str = "jeichner@verseo.pl",
-				lang: str = "pl"
+				lang: str = "pl",
+				ssl: bool = False
 				) -> None:
 		
 		#login credentials
-		self.url = url
+		if ssl:
+			self.url = "https://"+url
+		else:
+			self.url = "http://"+url
 
 		self.lang = lang
 		self.email = email
@@ -30,8 +34,8 @@ class Setup_WP:
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 		options.add_argument('--no-sandbox')
 		options.add_argument('--window-size=1420,1080')
-		# options.add_argument('--headless')
-		# options.add_argument('--disable-gpu')
+		options.add_argument('--headless')
+		options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
 		if os.path.isfile('/usr/lib/chromium-browser/chromedriver'):
 			self.driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=options)
@@ -46,7 +50,7 @@ class Setup_WP:
 		
 
 	def start(self):
-		self.get_url(f"http://{self.url}/")
+		self.get_url(f"{self.url}/")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "button")))
 
 		#select language
@@ -69,6 +73,7 @@ class Setup_WP:
 			sleep(1.5)
 			self.driver.get(url)
 			sleep(0.5)
+		print(self.driver.current_url)
 
 
 
@@ -107,7 +112,7 @@ class Setup_WP:
 	
 		
 	def login(self, login:str, pwd: str):
-		self.get_url(f"https://{self.url}/wp-login.php")
+		self.get_url(f"{self.url}/wp-login.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "user_login")))
 		self.driver.find_element(By.ID, "user_login").clear()
 		self.driver.find_element(By.ID, "user_login").send_keys(login)
@@ -129,13 +134,13 @@ class Setup_WP:
 
 
 	def delete_posts(self):
-		self.get_url(f"http://{self.url}/wp-admin/edit.php")
+		self.get_url(f"{self.url}/wp-admin/edit.php")
 		try:
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		except:
 			sleep(2)
-			self.get_url(f"http://{self.url}/wp-admin/edit.php")
+			self.get_url(f"{self.url}/wp-admin/edit.php")
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		try:
@@ -151,13 +156,13 @@ class Setup_WP:
 
 
 	def delete_pages(self):
-		self.get_url(f"http://{self.url}/wp-admin/edit.php?post_type=page")
+		self.get_url(f"{self.url}/wp-admin/edit.php?post_type=page")
 		try:
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		except:
 			sleep(1)
-			self.get_url(f"http://{self.url}/wp-admin/edit.php?post_type=page")
+			self.get_url(f"{self.url}/wp-admin/edit.php?post_type=page")
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
@@ -168,13 +173,13 @@ class Setup_WP:
 
 
 	def activate_plugins(self):
-		self.get_url(f"http://{self.url}/wp-admin/plugins.php")
+		self.get_url(f"{self.url}/wp-admin/plugins.php")
 		try:
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		except:
 			sleep(1)
-			self.get_url(f"http://{self.url}/wp-admin/plugins.php")
+			self.get_url(f"{self.url}/wp-admin/plugins.php")
 			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "cb-select-all-1")))
 			self.driver.find_element(By.ID, "cb-select-all-1").click()
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "bulk-action-selector-top")))
@@ -194,12 +199,12 @@ class Setup_WP:
 
 
 	def setup_menu(self):
-		self.get_url(f"http://{self.url}/wp-admin/nav-menus.php?action=edit&menu=0")
+		self.get_url(f"{self.url}/wp-admin/nav-menus.php?action=edit&menu=0")
 		try:
 			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "menu-name"))).send_keys("main")
 		except:
 			sleep(3)
-			self.get_url(f"http://{self.url}/wp-admin/nav-menus.php?action=edit&menu=0")
+			self.get_url(f"{self.url}/wp-admin/nav-menus.php?action=edit&menu=0")
 			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "menu-name"))).send_keys("main")
 		self.driver.find_element(By.ID, "locations-primary").click()
 		self.driver.find_element(By.ID, "locations-secondary").click()
@@ -217,13 +222,13 @@ class Setup_WP:
 	
 	def settings(self):
 		#general settings
-		self.get_url(f"http://{self.url}/wp-admin/options-general.php")
+		self.get_url(f"{self.url}/wp-admin/options-general.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "blogdescription")))
 		self.driver.find_element(By.ID, "blogdescription").clear()
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(0.5)
 		#discussion settings
-		self.get_url(f"http://{self.url}/wp-admin/options-discussion.php")
+		self.get_url(f"{self.url}/wp-admin/options-discussion.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.TAG_NAME, "fieldset")))
 		for i, fieldset in enumerate(self.driver.find_elements(By.TAG_NAME, "fieldset")):
 			if i%2:
@@ -235,7 +240,7 @@ class Setup_WP:
 		self.driver.find_element(By.ID, "submit").click()
 		sleep(1)
 		#permalink settings
-		self.get_url(f"http://{self.url}/wp-admin/options-permalink.php")
+		self.get_url(f"{self.url}/wp-admin/options-permalink.php")
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "permalink-input-post-name")))
 		self.driver.find_element(By.ID, "permalink-input-post-name").click()
 		self.driver.find_element(By.ID, "submit").click()
@@ -245,19 +250,24 @@ class Setup_WP:
 		logged = self.login(login, pwd)
 		if(not logged):
 			return "Wrong password"
-		self.get_url(f"https://{self.url}/wp-admin/profile.php")
+		self.get_url(f"{self.url}/wp-admin/profile.php")
 		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, "new_application_password_name")))
-		self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-		sleep(0.1)
 		self.driver.find_element(By.ID, "new_application_password_name").send_keys("api-"+datetime.now().strftime('%d-%m-%Y-%f'))
-		self.driver.find_element(By.ID, "do_new_application_password").click()
-		sleep(0.5)
-		api_key = WebDriverWait(self.driver, 6).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
 		try:
-			print("API KEY: ", api_key)
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.ID, "do_new_application_password"))).click()
 		except:
-			api_key = "Error"
+			print(self.driver.page_source)
+		sleep(3)
+		try:
+			print("API key: ", self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value"))
+		except:
+			print(self.driver.page_source)
+			print("No key value")
+		try:
+			api_key = WebDriverWait(self.driver, 6).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
+		except:
 			print("Error obtaining API key")
+			return None
 		self.driver.close()
 		return str(api_key)
 
