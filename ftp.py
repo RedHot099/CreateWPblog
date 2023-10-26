@@ -34,36 +34,48 @@ class UploadFTP:
 
 
     def do_ftp(self, h, u, p, path):
-        with FTP(h, u, p) as server:
-            print("Logged into FTP")
-            server.cwd('public_html')
-            #remove files from FTP (recursively)
-            self.dir_del_r(server, '')
+        counter = 3
+        while counter > 0:
+            try:
+                with FTP(h, u, p) as server:
+                    print("Logged into FTP")
+                    server.cwd('public_html')
+                    #remove files from FTP (recursively)
+                    self.dir_del_r(server, '')
 
-            #upload files to FTP
-            with open(path + '/' + self.wp_file, 'rb') as file:
-                server.storbinary('STOR ' + self.wp_file, file)                
+                    #upload files to FTP
+                    with open(path + '/' + self.wp_file, 'rb') as file:
+                        server.storbinary('STOR ' + self.wp_file, file)                
 
-            with open(path + '/wypakuj.php', 'rb') as file:
-                server.storbinary('STOR wypakuj.php', file)
+                    with open(path + '/wypakuj.php', 'rb') as file:
+                        server.storbinary('STOR wypakuj.php', file)
 
-            #ping to unpack .zip
-            print("Unpacking WordPress")
-            self.ping_unpack(h)
+                    #ping to unpack .zip
+                    print("Unpacking WordPress")
+                    self.ping_unpack(h)
 
-            
-            #clean trash afterwards
-            if self.wp_file in server.nlst(): server.delete(self.wp_file)
-            if 'wypakuj.php' in server.nlst(): server.delete('wypakuj.php')
+                    
+                    #clean trash afterwards
+                    if self.wp_file in server.nlst(): server.delete(self.wp_file)
+                    if 'wypakuj.php' in server.nlst(): server.delete('wypakuj.php')
+                break
+            except:
+                print(f"Cannot connect to FTP - {counter} tries left")
+                counter -= 1
+                sleep(5)
 
 
     def ping_unpack(self, url):
         code = 0
         while code != 200:
-            code = requests.get("http://" + url + "/wypakuj.php", verify=False).status_code
-            print(code)
-            if code == 200: break
-            sleep(2)
+            try:
+                code = requests.get("http://" + url + "/wypakuj.php", verify=False).status_code
+                print(code)
+            except:
+                print("Cannot ping website")
+            finally:
+                if code == 200: break
+                sleep(2)
 
 
 if __name__ == "__main__":
