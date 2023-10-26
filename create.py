@@ -19,7 +19,12 @@ class Create:
 		#login credentials
 		self.user = credentials["login"]
 		self.password = credentials["password"]
-		self.panel = credentials["url"]
+		if credentials["url"].startswith("http"):
+			self.panel = credentials["url"]
+		else:
+			self.panel = "http://"+credentials["url"]
+		if self.panel.endswith("/"):
+			self.panel = self.panel[:-1]
 
 		options = webdriver.ChromeOptions()
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -40,7 +45,7 @@ class Create:
 		
 	def login(self):
 		print("Logging into panel")
-		self.driver.get(f"http://{self.panel}/")
+		self.driver.get(f"{self.panel}/")
 		# sleep(1)
 		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "input")))
 		self.driver.find_element("id", "username").find_element(By.TAG_NAME, "input").send_keys(self.user)
@@ -51,23 +56,27 @@ class Create:
 				
 	def add_domain(self, name: str):
 		print("Creating domain base")
-		self.driver.execute_script(f"window.open('http://{self.panel}/user/domains/add-domain');")
-		sleep(1)
+		self.driver.execute_script(f"window.open('{self.panel}/user/domains/add-domain');")
+		sleep(0.2)
 		self.driver.switch_to.window(self.driver.window_handles[1])
-		sleep(1)
-		WebDriverWait(self.driver, 33).until(EC.element_to_be_clickable((By.TAG_NAME, "input")))
-		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys(name)
-		sleep(1)
-		self.driver.find_elements(By.TAG_NAME, "button")[2].click()
+		WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text.grow.pr-12")))
+		self.driver.find_elements(By.CSS_SELECTOR, "input.input-text.grow.pr-12")[0].send_keys(name)
+		sleep(2)
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.-theme-primary.-size-big")))
+		self.driver.find_element(By.CSS_SELECTOR, "button.-theme-primary.-size-big").click()
+		sleep(0.2)
 		
 		
 	def add_ip(self, name:str):
 		print("IP", name)
 		#Adding domain
 		sleep(1)
-		self.driver.get(f'http://{self.panel}/user/domains/domain/{name}/ips')
-		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.q-virtual-scroll__content")))
-		# sleep(1)
+		try:
+			self.driver.get(f'{self.panel}/user/domains/domain/{name}/ips')
+			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody.q-virtual-scroll__content")))
+		except:
+			print("Cannot set IP")
+			return -1
 		ip = s.gethostbyname(name)
 		if (self.driver.find_element(By.CSS_SELECTOR, "tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
 			self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
@@ -87,7 +96,7 @@ class Create:
 	def add_ssl(self):
 		print("SSL")
 		#SSL
-		self.driver.get(f'http://{self.panel}/user/ssl/server/')
+		self.driver.get(f'{self.panel}/user/ssl/server/')
 		# sleep(1)
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.input-checkbox-control")))
 		self.driver.find_elements(By.CSS_SELECTOR, "div.input-checkbox-control")[0].click()
@@ -98,17 +107,17 @@ class Create:
 	def add_db(self, name:str):
 		print("DataBase")
 		#DB
-		self.driver.get(f'http://{self.panel}/user/database/create')
+		self.driver.get(f'{self.panel}/user/database/create')
 		# sleep(1)
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.TAG_NAME, "input")))
 		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys(name.partition('.')[0])
-		self.driver.find_element(By.CSS_SELECTOR, "div.inputPassword>div>div>div>button").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
 		sleep(0.5)
-		self.driver.find_element(By.CSS_SELECTOR, "div.footer-buttons-slot>button").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.-theme-safe.-size-big"))).click()
 
 		#Copy db creds
-		sleep(1)
-		db_creds = self.driver.find_element(By.CLASS_NAME, "dialog-content-wrapper").get_attribute("innerText").split('\n')
+		sleep(2)
+		db_creds = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "dialog-content-wrapper"))).get_attribute("innerText").split('\n')
 		db_user = db_creds[3].split('\t')[1]
 		db_pass = db_creds[4].split('\t')[1]
 
@@ -119,13 +128,13 @@ class Create:
 	def add_ftp(self):
 		print("FTP")
 		#FTP
-		self.driver.get(f'http://{self.panel}/user/ftp-accounts/create')
+		self.driver.get(f'{self.panel}/user/ftp-accounts/create')
 		# sleep(1)
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.TAG_NAME, "input")))
 		self.driver.find_elements(By.TAG_NAME, "input")[1].send_keys("admin")
-		self.driver.find_element(By.CSS_SELECTOR, "div.inputPassword>div>div>div>button").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
 		sleep(0.5)
-		self.driver.find_element(By.CSS_SELECTOR, "div.footer-buttons-slot>button").click()
+		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.-theme-safe.-size-big"))).click()
 
 		#Copy ftp creds
 		sleep(1)
@@ -141,19 +150,19 @@ class Create:
 	def do_stuff(self, name:str) -> list[str]:
 		self.login()
 
-		# with open("results.tsv", "a+") as output:
 		self.add_domain(name)
 		self.add_ip(name)
 		self.add_ssl()
 		
 		db_user, db_pass = self.add_db(name)
-		ftp_user, ftp_pass = self.add_ftp()				
-		
-		# output.write(f'{name}\t{db_user}\t{db_pass}\t{ftp_user}\t{ftp_pass}\n')
+		ftp_user, ftp_pass = self.add_ftp()
 
 		#close tab and switch to main
-		self.driver.close()
-		self.driver.switch_to.window(self.driver.window_handles[0])
+		try:
+			self.driver.close()
+			self.driver.switch_to.window(self.driver.window_handles[0])
+		except:
+			print("Cannot close tab")
 
 		self.driver.close()
 		return db_user, db_pass, ftp_user, ftp_pass
