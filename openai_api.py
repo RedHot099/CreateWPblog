@@ -155,6 +155,8 @@ class OpenAI_API:
     
 
     def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int]:
+        if not url.startswith("http"):
+            url = "https://"+url
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=\"{url}\">{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Treść wynikowa powinna być gotowym kodem HTML zawierającym m.in. takie znaczniki jak <p>, <a> itp."
         
@@ -171,21 +173,21 @@ class OpenAI_API:
             text = text[:end] + nf + text[end:]
 
         if text.find("<a href=\"{url}\">{keyword}</a>") > 0:
-            return header, text
+            return header, text, int(response["usage"]["total_tokens"])
         elif text.find("<a href=\"{url}\"") > 0:
             #swap the keword
             start = text.find("<a href=\"{url}\"")
             start += text[start:].find(">")
             end = start + text[start:].find("</a>")
-            return header, text[:start+1]+keyword+text[end:]
+            return header, text[:start+1]+keyword+text[end:], int(response["usage"]["total_tokens"])
         elif text.find("<a"):
             #swap link&keyword
             start = text.find("<a")
             end = start + text[start:].find("</a>")
-            return header, text[:start+2] + f" href=\"{url}\"{nf}>{keyword}" + text[end:]
+            return header, text[:start+2] + f" href=\"{url}\"{nf}>{keyword}" + text[end:], int(response["usage"]["total_tokens"])
         else:
             #generate again
-            return self.write_paragraph_linked(title, header, keyword, url, nofollow), int(response["usage"]["total_tokens"])
+            return self.write_paragraph_linked(title, header, keyword, url, nofollow)
 
 
     def write_description(self, text:str) -> tuple[str, int]:
