@@ -56,7 +56,10 @@ class OpenAI_article(OpenAI_API, WP_API):
         headers, img_prompt, tokens = self.create_headers(title,header_num)
         text = ""
 
-        if links:
+        if links[0]['keyword'] == '' and links[0]['url'] == '':
+            print("No links in links")
+            data = [(title, h) for h in headers]
+        elif links:
             links = links + [{'keyword':'', 'url':''}]*(len(headers) - len(links))
             data = [(title, h, d['keyword'], d['url'], nofollow) for d, h in zip(links, headers)]
         else:
@@ -66,14 +69,14 @@ class OpenAI_article(OpenAI_API, WP_API):
         if parallel:
             with Pool() as pool_p:
                 for header, p, t in pool_p.starmap(self.write_paragraph, data):
-                    print(f"\t\tWrote section - {header}")
+                    print(f"{cat_id}\t{header}")
                     text += '<h2>'+header+'</h2>'+p
                     tokens += t
                 pool_p.close()
                 pool_p.join()
         else:
-            for d in data:
-                print(f"{cat_id}\t{d}")
+            for i, d in enumerate(data):
+                print(f"{i+1}/{len(data)}: {d}")
                 header, p, t = self.write_paragraph(*d)
                 text += '<h2>'+header+'</h2>'+p
                 tokens += t
@@ -165,50 +168,50 @@ class OpenAI_article(OpenAI_API, WP_API):
                 with Pool() as pool_titles:
                     for titles, cat_id, t in pool_titles.starmap(self.create_titles, data_prime):
                         tokens += t
-                        self.titles.append((titles, cat_id))
+                        for title in titles:
+                            self.titles.append((title, cat_id))
                     pool_titles.close()
                     pool_titles.join()
             else:
                 for d in data_prime:
                     titles, cat_id, t = self.create_titles(*d)
                     tokens += t
-                    print(titles)
-                    self.titles.append((titles, cat_id))
+                    for title in titles:
+                        self.titles.append((title, cat_id))
 
         #output dict
         urls = {}
-        self.titles = self.titles[:len(categories)]
-        print("Article tites - ", len(self.titles), self.titles)
+        self.titles = self.titles[:len(categories)*article_num]
+        links += [{'keyword':'', 'url':''}]*(len(self.titles) - len(links))
+        print("Article tites - ", len(self.titles), ":")
+        for t, id in self.titles:
+            print(id, t)
         #for small articles parallelize writing articles
-        if article_num > header_num:
+        if article_num*len(self.titles) > header_num:
             with Pool() as pool_h:
-                for titles, cat_id in self.titles:
-                    data = [(header_num, t, cat_id, False, path, links, nofollow) for t in titles]
-                    for res, id, t in pool_h.starmap(self.create_article, data):
-                        tokens += t
-                        id = int(id)
-                        if id in urls.keys():
-                            urls[id].append(res)
-                        else:
-                            urls[id] = [res]
-                pool_h.close()
-                pool_h.join()
-        #for big articles parallelize writing sections
-        else:
-            for titles, cat_id in self.titles:
-                print(str(cat_id)+" - writing articles: \n - " + "\n - ".join(titles))
-                for t in titles:
-                    res, id, t = self.create_article(header_num, t, cat_id, parallel=True, path=path, links=links, nofollow=nofollow)
+                data = [(header_num, t, cat_id, False, path, [link], nofollow) for ((t, cat_id), link) in zip(self.titles, links)]
+                for res, id, t in pool_h.starmap(self.create_article, data):
                     tokens += t
                     id = int(id)
                     if id in urls.keys():
                         urls[id].append(res)
                     else:
                         urls[id] = [res]
+                pool_h.close()
+                pool_h.join()
+        #for big articles parallelize writing sections
+        else:
+            for i, ((title, cat_id), link) in enumerate(zip(self.titles,links)):
+                print(f"{i+1}/{len(self.titles)}: {title}")
+                res, id, t = self.create_article(header_num, title, cat_id, parallel=True, path=path, links=[link], nofollow=nofollow)
+                tokens += t
+                id = int(id)
+                if id in urls.keys():
+                    urls[id].append(res)
+                else:
+                    urls[id] = [res]
 
-        print(urls)
-        print(f"Tokens used: {tokens}")
-        return urls
+        return urls, tokens
 
 
 if __name__ == "__main__":
