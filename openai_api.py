@@ -175,16 +175,18 @@ class OpenAI_API:
         if text.find("<a href=\"{url}\">{keyword}</a>") > 0:
             return header, text, int(response["usage"]["total_tokens"])
         elif text.find("<a href=\"{url}\"") > 0:
+            print("Wrong keyword in ahref")
             #swap the keword
             start = text.find("<a href=\"{url}\"")
             start += text[start:].find(">")
             end = start + text[start:].find("</a>")
             return header, text[:start+1]+keyword+text[end:], int(response["usage"]["total_tokens"])
         elif text.find("<a"):
+            print("Wrong link in anhor")
             #swap link&keyword
             start = text.find("<a")
             end = start + text[start:].find("</a>")
-            return header, text[:start+2] + f" href=\"{url}\"{nf}>{keyword}" + text[end:], int(response["usage"]["total_tokens"])
+            return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword+text[end:], int(response["usage"]["total_tokens"])
         else:
             #generate again
             return self.write_paragraph_linked(title, header, keyword, url, nofollow)

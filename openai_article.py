@@ -148,7 +148,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                          links:list[dict] = [],
                          nofollow:int = 0, 
                          topic:str = ""
-                         ) -> dict:
+                         ) -> tuple[dict,int]:
         #if no categories get categories from WP API
         if categories == []:
             categories = self.get_categories()
