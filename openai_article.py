@@ -157,6 +157,10 @@ class OpenAI_article(OpenAI_API, WP_API):
         #parse json data
         if type(links)==str:
             links = json.loads(links)
+        elif links is None:
+            links = []
+        else:
+            print(type(links), links)
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
         if len(data_prime) == 0:
