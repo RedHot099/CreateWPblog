@@ -22,7 +22,10 @@ class OpenAI_API:
             "de": " Odpowiedz w języku Niemieckim - Reply in German language.",
             "en": " Odpowiedz w języku Angielskim - Reply in English language.",
             "cs": " Odpowiedz w języku Czeskim - Reply in Czech language.",
-            "sk": " Odpowiedz w języku Słowackim - Reply in Slovak language."
+            "sk": " Odpowiedz w języku Słowackim - Reply in Slovak language.",
+            "fr": " Odpowiedz w języku Francuskim - Reply in French language.",
+            "es": " Odpowiedz w języku Hiszpańskim - Reply in Spanish language.",
+            "ro": " Odpowiedz w języku Rumuńskim - Reply in Romanian language."
         }
 
 
@@ -36,14 +39,13 @@ class OpenAI_API:
 
         while True:
             try:
-                response = openai.ChatCompletion.create(model=self.model, messages=prompt)
+                response = openai.ChatCompletion.create(model=self.model, messages=prompt, request_timeout=40.0)
             except openai.error.RateLimitError:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
                 continue
             except Exception as e:
-                print("Unknown error, waiting & resuming")
-                print(e)
+                print("Unknown error, waiting & resuming - ", e)
                 time.sleep(3)
                 continue
             break
@@ -175,17 +177,19 @@ class OpenAI_API:
         if text.find("<a href=\"{url}\">{keyword}</a>") > 0:
             return header, text, int(response["usage"]["total_tokens"])
         elif text.find("<a href=\"{url}\"") > 0:
-            print("Wrong keyword in ahref")
             #swap the keword
             start = text.find("<a href=\"{url}\"")
             start += text[start:].find(">")
             end = start + text[start:].find("</a>")
+            print("Wrong keyword in ahref - ", text[start:end+4])
+            print(keyword)
             return header, text[:start+1]+keyword+text[end:], int(response["usage"]["total_tokens"])
         elif text.find("<a"):
-            print("Wrong link in anhor")
             #swap link&keyword
             start = text.find("<a")
             end = start + text[start:].find("</a>")
+            print("Wrong link in anhor", text[start:end+4])
+            print(url, keyword)
             return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword+text[end:], int(response["usage"]["total_tokens"])
         else:
             #generate again
