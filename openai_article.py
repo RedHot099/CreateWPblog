@@ -26,6 +26,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         self.publish_date = manager.dict()
         self.publish_date['t'] = start_date
         self.titles = manager.list()
+        self.domain = domain_name
 
         self.days_delta = days_delta
         self.forward_delta = forward_delta
@@ -93,15 +94,13 @@ class OpenAI_article(OpenAI_API, WP_API):
             img_id = None
 
         if img_id:
-            print('uploading article')
             response = self.post_article(title, text, desc, img_id, self.publish_date['t'], cat_id)['link']
         else:
             print('no image id - uploading with default image')
             response = self.post_article(title, text, desc, "1", self.publish_date['t'], cat_id)['link']
 
-        print(response)
+        print("Uploaded article - ", response)
         self.shift_date()
-        print(f"Total tokens used: {tokens}")
         return response, cat_id, tokens
     
 
@@ -159,8 +158,6 @@ class OpenAI_article(OpenAI_API, WP_API):
             links = json.loads(links)
         elif links is None:
             links = []
-        else:
-            print(type(links), links)
         #create data tuple for each category
         data_prime = [(c['name'], article_num, int(c['id'])) for c in categories if c['name'] != "Bez kategorii"]
         if len(data_prime) == 0:
@@ -215,7 +212,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                 else:
                     urls[id] = [res]
 
-        return urls, tokens
+        return urls, tokens, self.domain
 
 
 if __name__ == "__main__":
