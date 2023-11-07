@@ -1,8 +1,13 @@
-import openai
 import time
 from random import randint
 from multiprocessing import Pool
 from functools import partial
+
+import openai
+from openai import OpenAI
+import os
+import json
+import re
 
 
 class OpenAI_API:
@@ -10,10 +15,10 @@ class OpenAI_API:
                  api_key,
                  lang:str = None
                  ) -> None:
-        
-        self.openai_key = api_key
+        # os.environ["OPENAI_API_KEY"] = api_key
+        self.api_key = api_key
+        self.model = "gpt-4"
         self.total_tokens = 0 
-        self.model = "gpt-3.5-turbo"
 
         self.lang = lang
 
@@ -30,7 +35,7 @@ class OpenAI_API:
 
 
     def ask_openai(self, system:str, user:str) -> dict:
-        openai.api_key = self.openai_key
+        client = OpenAI(api_key=self.api_key)
         prompt = [
             {"role": "system", "content": system + self.lang_prompt()},
             {"role": "user", "content": user}
@@ -39,8 +44,8 @@ class OpenAI_API:
 
         while True:
             try:
-                response = openai.ChatCompletion.create(model=self.model, messages=prompt, request_timeout=40.0)
-            except openai.error.RateLimitError:
+                response = client.chat.completions.create(model=self.model, messages=prompt)
+            except openai.RateLimitError:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
                 continue
@@ -49,6 +54,8 @@ class OpenAI_API:
                 time.sleep(3)
                 continue
             break
+
+        response = json.loads(response.json())
 
         self.total_tokens += response["usage"]["total_tokens"]
 
@@ -144,33 +151,43 @@ class OpenAI_API:
         return header_prompts, img_prompt, int(response["usage"]["total_tokens"])
     
 
+    def remove_non_p_tags(self, text):
+        text = text.replace("<article>", "")
+        text = text.replace("</article>", "")
+        text = text.replace("<article>", "")
+        text = text.replace("</article>", "")
+        text = re.sub(r'<h1\b[^>]*>.*?</h1>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<h2\b[^>]*>.*?</h2>', '', text, flags=re.DOTALL)
+        return text
+    
+
     def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str, str, int]:
         if (keyword!="" and url!=""):
             return self.write_paragraph_linked(title, header, keyword, url, nofollow)
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
-        user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>.'
+        user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>. Unikaj używania tagu <article>'
         
         time.sleep(randint(0,3))
         response = self.ask_openai(system, user)
 
-        return header, response['choices'][0]['message']['content'], int(response["usage"]["total_tokens"])
+        return header, self.remove_non_p_tags(response['choices'][0]['message']['content']), int(response["usage"]["total_tokens"])
     
 
     def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int]:
         if not url.startswith("http"):
             url = "https://"+url
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
-        user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=\"{url}\">{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Treść wynikowa powinna być gotowym kodem HTML zawierającym m.in. takie znaczniki jak <p>, <a> itp."
+        user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=\"{url}\">{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Tekst umieść w <p></p>."
         
         response = self.ask_openai(system, user)
 
-        text = response['choices'][0]['message']['content']
+        text = self.remove_non_p_tags(response['choices'][0]['message']['content'])
 
         chance = randint(0,100)
         nf = ""
         if int(nofollow) > chance:
             nf = " rel=\"nofollow\""
-            start = text.find("<a")
+            start = text.find("<a ")
             end = start + text[start:].find(">")
             text = text[:end] + nf + text[end:]
 
@@ -184,9 +201,9 @@ class OpenAI_API:
             print("Wrong keyword in ahref - ", text[start:end+4])
             print(keyword)
             return header, text[:start+1]+keyword+text[end:], int(response["usage"]["total_tokens"])
-        elif text.find("<a"):
+        elif text.find("<a "):
             #swap link&keyword
-            start = text.find("<a")
+            start = text.find("<a ")
             end = start + text[start:].find("</a>")
             print("Wrong link in anhor", text[start:end+4])
             print(url, keyword)
@@ -207,27 +224,16 @@ class OpenAI_API:
     
 
     def create_img(self, img_prompt) -> str:
+        client = OpenAI(api_key=self.api_key)
         helper = "Na zdjęciu znajdują się tylko przedmioty, ewentualnie martwa natura. "
-        try:
-            response = openai.Image.create(
-                prompt=helper+img_prompt,
-                n=1,
-                size="512x512"
-            )
-        except openai.error.InvalidRequestError:
-            img_prompt = self.ask_openai("Jesteś redaktorem treści na portalu dla dzieci", "Przebuduj to zdanie tak, aby było family friendly - "+img_prompt)
-            response = openai.Image.create(
-                prompt=helper+img_prompt['choices'][0]['message']['content'],
-                n=1,
-                size="512x512"
-            )
-        except:
-            response = openai.Image.create(
-                prompt=helper+img_prompt,
-                n=1,
-                size="512x512"
-            )
-        image_url = response['data'][0]['url']
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=helper+img_prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+        image_url = response.data[0].url
         return image_url
     
     def create_favicon(self, topic) -> str:
