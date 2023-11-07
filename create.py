@@ -46,7 +46,8 @@ class Create:
 	def login(self):
 		print("Logging into panel")
 		self.driver.get(f"{self.panel}/")
-		# sleep(1)
+		sleep(1)
+		self.panel = self.driver.current_url
 		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input#username"))).send_keys(self.user)
 		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input#password"))).send_keys(self.password)
 		self.driver.execute_script("document.getElementsByTagName('button')[0].click()")
@@ -78,14 +79,18 @@ class Create:
 			return -1
 		ip = s.gethostbyname(name)
 		if (self.driver.find_element(By.CSS_SELECTOR, "tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
-			self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
-			if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") != ip):
-				self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
-				for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
-					print("Dostępny ip - "+i.get_attribute("innerText"), i.get_attribute("innerText")==ip)
-					if i.get_attribute("innerText") == ip:
-						i.click()
-						break
+			try:
+				self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
+				if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") != ip):
+					self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
+					for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
+						print("Dostępny ip - "+i.get_attribute("innerText"), i.get_attribute("innerText")==ip)
+						if i.get_attribute("innerText") == ip:
+							i.click()
+							break
+			except:
+				print("Brak wolnych adresów IP")
+				return 0
 			try:
 				self.driver.find_element(By.CSS_SELECTOR, "button.-theme-primary.-size-big").click()
 			except:
@@ -135,6 +140,7 @@ class Create:
 				if name == a.get_attribute("innerText"):
 					a.click()
 					break
+			print("Selected domain: ", self.driver.find_element(By.CSS_SELECTOR, "span.domain").get_attribute("innerText"))
 		sleep(0.5)
 		WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).send_keys("admin")
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
