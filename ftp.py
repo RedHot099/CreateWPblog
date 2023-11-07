@@ -72,6 +72,7 @@ class UploadFTP:
                 code = requests.get("http://" + url + "/wypakuj.php", verify=False).status_code
                 print(url, code)
             except:
+                code = requests.get("http://" + url, verify=False).status_code
                 print("Cannot ping website")
             finally:
                 if code == 200: break
