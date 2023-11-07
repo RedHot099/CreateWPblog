@@ -191,9 +191,9 @@ class OpenAI_API:
             end = start + text[start:].find(">")
             text = text[:end] + nf + text[end:]
 
-        if text.find("<a href=\"{url}\">{keyword}</a>") > 0:
+        if text.find(f"<a href=\"{url}\">{keyword}</a>") > 0:
             return header, text, int(response["usage"]["total_tokens"])
-        elif text.find("<a href=\"{url}\"") > 0:
+        elif text.find(f"<a href=\"{url}\"") > 0:
             #swap the keword
             start = text.find("<a href=\"{url}\"")
             start += text[start:].find(">")
