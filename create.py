@@ -30,8 +30,8 @@ class Create:
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
 		options.add_argument('--no-sandbox')
 		options.add_argument('--window-size=1420,1080')
-		options.add_argument('--headless')
-		options.add_argument('--disable-gpu')
+		# options.add_argument('--headless')
+		# options.add_argument('--disable-gpu')
 		options.add_argument('ignore-certificate-errors')
 		if os.path.isfile('/usr/lib/chromium-browser/chromedriver'):
 			self.driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=options)
@@ -105,7 +105,12 @@ class Create:
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.input-checkbox-control")))
 		self.driver.find_elements(By.CSS_SELECTOR, "div.input-checkbox-control")[0].click()
 		self.driver.find_element(By.CSS_SELECTOR, "button.-theme-safe").click()	
-		sleep(0.2)
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.input-checkbox-control")))
+		self.driver.get(self.panel + "/user/ssl/letsencrypt")
+		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.ui-tabs-header-tab"))).click()
+		WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.-theme-safe.-size-big"))).click()
+		WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.dialog-wrap")))
+		sleep(1)
 
 
 	def add_db(self, name:str):
