@@ -13,11 +13,14 @@ import re
 class OpenAI_API:
     def __init__(self, 
                  api_key,
-                 lang:str = None
+                 lang:str = None,
+                 text_model = "gpt-3.5-turbo-1106",
+                 image_model = "dall-e-3"
                  ) -> None:
         # os.environ["OPENAI_API_KEY"] = api_key
         self.api_key = api_key
-        self.model = "gpt-4"
+        self.text_model = text_model
+        self.image_model = image_model
         self.total_tokens = 0 
 
         self.lang = lang
@@ -44,7 +47,7 @@ class OpenAI_API:
 
         while True:
             try:
-                response = client.chat.completions.create(model=self.model, messages=prompt)
+                response = client.chat.completions.create(model=self.text_model, messages=prompt)
             except openai.RateLimitError:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
@@ -227,7 +230,7 @@ class OpenAI_API:
         client = OpenAI(api_key=self.api_key)
         helper = "Na zdjęciu znajdują się tylko przedmioty, ewentualnie martwa natura. "
         response = client.images.generate(
-            model="dall-e-3",
+            model=self.image_model,
             prompt=helper+img_prompt,
             size="1024x1024",
             quality="standard",
