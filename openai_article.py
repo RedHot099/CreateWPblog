@@ -77,7 +77,8 @@ class OpenAI_article(OpenAI_API, WP_API):
                 pool_p.join()
         else:
             for i, d in enumerate(data):
-                print(f"{i+1}/{len(data)}: {d}")
+                if len(data) > 1:
+                    print(f"{i+1}/{len(data)}: {d}")
                 header, p, t = self.write_paragraph(*d)
                 text += '<h2>'+header+'</h2>'+p
                 tokens += t
