@@ -198,10 +198,10 @@ class OpenAI_API:
             return header, text, int(response["usage"]["total_tokens"])
         elif text.find(f"<a href=\"{url}\"") > 0:
             #swap the keword
-            start = text.find(f"<a href=\"{url}\"")
-            start += text[start:].find(">")
+            base = text.find(f"<a href=\"{url}\"")
+            start = base + text[base:].find(">")
             end = start + text[start:].find("</a")
-            print("Wrong keyword in ahref - ", text[start:end+4])
+            print("Wrong keyword in ahref - ", text[base:end+4])
             print(keyword)
             return header, text[:start+1]+keyword+text[end:], int(response["usage"]["total_tokens"])
         elif text.find("<a ") > 0:
