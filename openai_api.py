@@ -71,7 +71,7 @@ class OpenAI_API:
                 time.sleep(3)
                 continue
             except httpx.TimeoutException as e:
-                print("HTTPX timeout error, waiting & resuming - ", e)
+                print("HTTPX timeout error, waiting & resuming - ", timeout)
                 time.sleep(3)
                 continue
             break
@@ -138,7 +138,7 @@ class OpenAI_API:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
-        response = await self.ask_openai(system, user, article_num*4.0)
+        response = await self.ask_openai(system, user, article_num*8.0)
 
         return self.cleanup_titles(response.choices[0].message.content, article_num), cat_id, int(response.usage.total_tokens)
     
@@ -161,7 +161,7 @@ class OpenAI_API:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
         user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu. Nie używaj cudzysłowów.' 
         
-        response = await self.ask_openai(system, user, header_num*3.0)
+        response = await self.ask_openai(system, user, header_num*10.0)
         
         header_prompts, img_prompt = self.cleanup_header(response.choices[0].message.content, header_num)
 
@@ -180,25 +180,26 @@ class OpenAI_API:
 
     async def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str, str, int]:
         if (keyword!="" and url!=""):
-            return self.write_paragraph_linked(title, header, keyword, url, nofollow)
+            linked_response = await self.write_paragraph_linked(title, header, keyword, url, nofollow)
+            return linked_response
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>. Unikaj używania tagu <article>'
         
         time.sleep(randint(0,3))
-        response = await self.ask_openai(system, user, 40.0)
+        response = await self.ask_openai(system, user, 80.0)
 
         return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens)
     
 
-    def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int]:
+    async def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int]:
         if not url.startswith("http"):
             url = "https://"+url
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=\"{url}\">{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Tekst umieść w <p></p>."
         
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user)
 
-        text = self.remove_non_p_tags(response['choices'][0]['message']['content'])
+        text = self.remove_non_p_tags(response.choices[0].message.content)
 
         chance = randint(0,100)
         nf = ""
@@ -209,7 +210,7 @@ class OpenAI_API:
             text = text[:end] + nf + text[end:]
 
         if text.find(f"<a href=\"{url}\">{keyword}</a>") > 0:
-            return header, text, int(response["usage"]["total_tokens"])
+            return header, text, int(response.usage.total_tokens)
         elif text.find(f"<a href=\"{url}\"") > 0:
             #swap the keword
             base = text.find(f"<a href=\"{url}\"")
@@ -217,17 +218,17 @@ class OpenAI_API:
             end = start + text[start:].find("</a")
             print("Wrong keyword in ahref - ", text[base:end+4])
             print(keyword)
-            return header, text[:start+1]+keyword+text[end:], int(response["usage"]["total_tokens"])
+            return header, text[:start+1]+keyword+text[end:], int(response.usage.total_tokens)
         elif text.find("<a ") > 0:
             #swap link&keyword
             start = text.find("<a ")
             end = start + text[start:].find("</a")
             print("Wrong link in anhor", text[start:end+4], start, end)
             print(url, keyword)
-            return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword + text[end:], int(response["usage"]["total_tokens"])
+            return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword + text[end:], int(response.usage.total_tokens)
         else:
             #generate again
-            return self.write_paragraph_linked(title, header, keyword, url, nofollow)
+            return await self.write_paragraph_linked(title, header, keyword, url, nofollow)
 
 
     async def write_description(self, text:str) -> tuple[str, int]:
@@ -235,7 +236,7 @@ class OpenAI_API:
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         user = f'Dla poniższego artykułu napisz 4 zdania = jeden paragraf, podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
         
-        response = await self.ask_openai(system, user, 40.0)
+        response = await self.ask_openai(system, user, 60.0)
 
         return response.choices[0].message.content, int(response.usage.total_tokens)
     
