@@ -186,7 +186,7 @@ class OpenAI_API:
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>. Unikaj używania tagu <article>'
         
         time.sleep(randint(0,3))
-        response = await self.ask_openai(system, user, 80.0)
+        response = await self.ask_openai(system, user, 50.0)
 
         return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens)
     
@@ -236,7 +236,7 @@ class OpenAI_API:
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         user = f'Dla poniższego artykułu napisz 4 zdania = jeden paragraf, podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
         
-        response = await self.ask_openai(system, user, 60.0)
+        response = await self.ask_openai(system, user, 40.0)
 
         return response.choices[0].message.content, int(response.usage.total_tokens)
     
