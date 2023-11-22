@@ -2,20 +2,20 @@ from datetime import datetime, timedelta
 import urllib.request
 import os
 import json
-from random import randint, shuffle
+import asyncio
 from multiprocessing import Pool, Manager
-from .openai_api import OpenAI_API
-from .wp_api import WP_API
+from openai_api import OpenAI_API
+from wp_api import WP_API
 
 
 class OpenAI_article(OpenAI_API, WP_API):
     def __init__(self, 
-                api_key, 
-                domain_name, 
-                wp_login, 
-                wp_pass,
+                api_key:str, 
+                domain_name:str, 
+                wp_login:str, 
+                wp_pass:str,
                 lang:str = None, 
-                start_date: datetime = datetime.now(),
+                start_date:datetime = datetime.now(),
                 days_delta:int = 7, 
                 forward_delta:bool = True
                 ) -> None:
@@ -214,6 +214,100 @@ class OpenAI_article(OpenAI_API, WP_API):
                     urls[id] = [res]
 
         return urls, tokens, self.domain
+    
+
+    async def write_article(self, 
+                            headers:int, 
+                            title:str, 
+                            img_desc:str,
+                            cat_id:int = 1,
+                            path:str = '',
+                            links:list[dict] = None,
+                            nofollow:int = 0
+                            ) -> tuple[str, int, int]:
+        p_tasks = []
+
+        if links:
+            for l, h in zip(links, headers[:len(links)]):
+                p_tasks.append(asyncio.create_task(self.write_paragraph(title, h, l['keyword'], l['url'], nofollow)))
+
+        for h in headers:
+            p_tasks.append(asyncio.create_task(o.write_paragraph(title, h)))
+        
+        ps = await asyncio.gather(*p_tasks)
+
+        text = ""
+        for h, p, t in ps:
+            text += "<h2>"+h+"</h2>"
+            text += p
+
+        #Write description
+        desc, t = await self.write_description(text)
+
+        #Generate & download image
+
+        
+        #Upload image to WordPress
+
+
+        #Delete local image
+
+
+        #Upload article to Wordpress
+
+
+        return text, desc
+    
+    
+    async def main(self, 
+                    article_num:int, 
+                    header_num:int,
+                    categories:list[dict] = [],
+                    path:str = "",
+                    links:list[dict] = [],
+                    nofollow:int = 0, 
+                    topic:str = ""):
+        
+        '''
+        GOTO data structure
+        [
+            {
+                "cat": "",
+                "articles": [
+                    {
+                        "title": "",
+                        "headers": [], 
+                        "paragraphs": [] 
+                    }
+                ], 
+                ...articles
+            },
+            ...categories
+        ]
+        '''
+        
+        titles_tasks = []
+        for category in categories:
+            titles_tasks.append(asyncio.create_task(self.create_titles(category['name'],article_num,category['id'])))
+
+        titles_list = await asyncio.gather(*titles_tasks)
+
+        headers_tasks = []
+        for titles, category_id, title_tokens in titles_list:
+            for title in titles:
+                headers_tasks.append(asyncio.create_task(self.create_headers(title,header_num)))
+        
+        headers = await asyncio.gather(*headers_tasks)
+
+        articles_tasks = []
+        for titles, category_id, title_tokens in titles_list:
+            for x, title in zip(headers, titles):
+                headers, image_desc, headers_tokens = x
+                print(title, headers)
+                articles_tasks.append(asyncio.create_task(self.write_article(headers, title, image_desc)))
+
+        texts = await asyncio.gather(*articles_tasks)
+        return texts
 
 
 if __name__ == "__main__":

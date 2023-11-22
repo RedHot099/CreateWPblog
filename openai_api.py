@@ -4,9 +4,9 @@ from multiprocessing import Pool
 from functools import partial
 
 import openai
-from openai import OpenAI
-import os
-import json
+from openai import OpenAI, AsyncOpenAI
+import asyncio
+import httpx
 import re
 
 
@@ -25,8 +25,12 @@ class OpenAI_API:
 
         self.lang = lang
 
+        self.client = AsyncOpenAI(
+            api_key=self.api_key
+            )
+
         self.langs = {
-            "pl": "",
+            "pl": " Odpowiedz w języku Polskim - Reply in Polish language.",
             "de": " Odpowiedz w języku Niemieckim - Reply in German language.",
             "en": " Odpowiedz w języku Angielskim - Reply in English language.",
             "cs": " Odpowiedz w języku Czeskim - Reply in Czech language.",
@@ -37,8 +41,7 @@ class OpenAI_API:
         }
 
 
-    def ask_openai(self, system:str, user:str) -> dict:
-        client = OpenAI(api_key=self.api_key)
+    async def ask_openai(self, system:str, user:str, timeout:float = 80.0) -> dict:
         prompt = [
             {"role": "system", "content": system + self.lang_prompt()},
             {"role": "user", "content": user}
@@ -47,20 +50,31 @@ class OpenAI_API:
 
         while True:
             try:
-                response = client.chat.completions.create(model=self.text_model, messages=prompt)
+                response = await self.client.with_options(timeout=timeout).chat.completions.create(model=self.text_model, messages=prompt)
             except openai.RateLimitError:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
                 continue
-            except Exception as e:
+            except openai.APITimeoutError:
+                print("OpenAI timeout - ", timeout)
+            except openai.APIStatusError as e:
+                print("Unknown error, waiting & resuming - ", e.status_code, e.response)
+                time.sleep(3)
+                continue
+            except openai.APIConnectionError as e:
+                print("The server could not be reached")
+                print(e.__cause__)  # an underlying Exception, likely raised within httpx.
+                time.sleep(3)
+                continue
+            except openai.APIError as e:
                 print("Unknown error, waiting & resuming - ", e)
                 time.sleep(3)
                 continue
+            except httpx.TimeoutException as e:
+                print("HTTPX timeout error, waiting & resuming - ", e)
+                time.sleep(3)
+                continue
             break
-
-        response = json.loads(response.json())
-
-        self.total_tokens += response["usage"]["total_tokens"]
 
         return response
     
@@ -85,17 +99,17 @@ class OpenAI_API:
         return cats
 
     
-    def create_categories(self, topic, category_num = 5) -> tuple[list[str], int]:
+    def create_categories(self, topic:str, category_num:int = 5) -> tuple[list[str], int]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {category_num} nazw kategorii o dla strony blogowej o tematyce {topic}, każda z nazw kategorii powinna być powiązana z {topic}, podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
 
-        response = self.ask_openai(system, user)
+        response = self.ask_openai(system, user, category_num*2.0)
         
         return self.cleanup_category(response['choices'][0]['message']['content']), int(response["usage"]["total_tokens"])
 
 
     def create_subcategories(self, category, topic, subcategory_num = 5) -> tuple[list[str], int]:
-        system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje."
+        system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje. Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce {topic} podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
         response = self.ask_openai(system, user)
@@ -116,17 +130,17 @@ class OpenAI_API:
         titles = text.split('\n')
         titles = [t.strip() for t in titles if t]
         titles = titles[:num]
-        titles = [t[t.find(". ")+1:].replace("\"","").replace("\'","") for t in titles]
+        titles = [t[t.find(". ")+1:].replace("\"","").replace("\'","").strip() for t in titles]
         return titles        
     
 
-    def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> tuple[list[str], int, int]:
-        system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
+    async def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> tuple[list[str], int, int]:
+        system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user, article_num*4.0)
 
-        return self.cleanup_titles(response['choices'][0]['message']['content'], article_num), cat_id, int(response["usage"]["total_tokens"])
+        return self.cleanup_titles(response.choices[0].message.content, article_num), cat_id, int(response.usage.total_tokens)
     
 
     def cleanup_header(self, text, header_num) -> tuple[list[str], int]:
@@ -143,15 +157,15 @@ class OpenAI_API:
         return headers, img
 
 
-    def create_headers(self, title:str, header_num:int = 5) -> tuple[list[str], str, int]:
+    async def create_headers(self, title:str, header_num:int = 5) -> tuple[list[str], str, int]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
         user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu. Nie używaj cudzysłowów.' 
         
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user, header_num*3.0)
         
-        header_prompts, img_prompt = self.cleanup_header(response['choices'][0]['message']['content'], header_num)
+        header_prompts, img_prompt = self.cleanup_header(response.choices[0].message.content, header_num)
 
-        return header_prompts, img_prompt, int(response["usage"]["total_tokens"])
+        return header_prompts, img_prompt, int(response.usage.total_tokens)
     
 
     def remove_non_p_tags(self, text):
@@ -164,16 +178,16 @@ class OpenAI_API:
         return text
     
 
-    def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str, str, int]:
+    async def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str, str, int]:
         if (keyword!="" and url!=""):
             return self.write_paragraph_linked(title, header, keyword, url, nofollow)
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>. Unikaj używania tagu <article>'
         
         time.sleep(randint(0,3))
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user, 40.0)
 
-        return header, self.remove_non_p_tags(response['choices'][0]['message']['content']), int(response["usage"]["total_tokens"])
+        return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens)
     
 
     def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int]:
@@ -216,14 +230,14 @@ class OpenAI_API:
             return self.write_paragraph_linked(title, header, keyword, url, nofollow)
 
 
-    def write_description(self, text:str) -> tuple[str, int]:
+    async def write_description(self, text:str) -> tuple[str, int]:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem. Napisz tylko jeden paragraf"
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         user = f'Dla poniższego artykułu napisz 4 zdania = jeden paragraf, podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
         
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user, 40.0)
 
-        return response['choices'][0]['message']['content'], int(response["usage"]["total_tokens"])
+        return response.choices[0].message.content, int(response.usage.total_tokens)
     
 
     def create_img(self, img_prompt) -> str:
