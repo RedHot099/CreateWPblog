@@ -4,8 +4,8 @@ import os
 import json
 import asyncio
 from multiprocessing import Pool, Manager
-from openai_api import OpenAI_API
-from wp_api import WP_API
+from .openai_api import OpenAI_API
+from .wp_api import WP_API
 
 
 class OpenAI_article(OpenAI_API, WP_API):
@@ -33,6 +33,10 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         OpenAI_API.__init__(self, api_key, lang)
         WP_API.__init__(self, domain_name, wp_login, wp_pass)
+
+
+    def get_domain(self):
+        return self.domain  
 
 
     def download_img(self, img_prompt, img_path) -> str:
@@ -217,46 +221,59 @@ class OpenAI_article(OpenAI_API, WP_API):
     
 
     async def write_article(self, 
-                            headers:int, 
                             title:str, 
-                            img_desc:str,
+                            header_num:int, 
                             cat_id:int = 1,
                             path:str = '',
                             links:list[dict] = None,
                             nofollow:int = 0
                             ) -> tuple[str, int, int]:
+        
+        #generate headers & promt for generating image
+        print("Creating headers for - ", title)
+        headers, img_prompt, headers_tokens = await self.create_headers(title,header_num)
+        
         p_tasks = []
-
+        #write paragraphs with links first
         if links:
             for l, h in zip(links, headers[:len(links)]):
                 p_tasks.append(asyncio.create_task(self.write_paragraph(title, h, l['keyword'], l['url'], nofollow)))
-
+        #queue up rest of paragraphs
         for h in headers:
-            p_tasks.append(asyncio.create_task(o.write_paragraph(title, h)))
-        
-        ps = await asyncio.gather(*p_tasks)
-
+            p_tasks.append(asyncio.create_task(self.write_paragraph(title, h)))
+        print("Writing paragraphs for article - ", title)
+        paragraphs = await asyncio.gather(*p_tasks)
+        #merge all texts into single string article
         text = ""
-        for h, p, t in ps:
-            text += "<h2>"+h+"</h2>"
-            text += p
+        for header, paragraph, tokens in paragraphs:
+            text += "<h2>"+header+"</h2>"
+            text += paragraph
 
         #Write description
-        desc, t = await self.write_description(text)
+        desc, tokens = await self.write_description(text)
 
         #Generate & download image
-
+        if img_prompt != "":
+            img = self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
+            #Upload image to WordPress
+            img_id = self.upload_img(img)
+            #Delete local image
+            os.remove(img)
+        else:
+            print("No img prompt - TARAPATAS!!")
+            img_id = None
         
-        #Upload image to WordPress
-
-
-        #Delete local image
-
-
         #Upload article to Wordpress
+        if img_id:
+            response = self.post_article(title, text, desc, img_id, self.publish_date['t'], cat_id)['link']
+        else:
+            print('no image id - uploading with default image')
+            response = self.post_article(title, text, desc, "1", self.publish_date['t'], cat_id)['link']
 
 
-        return text, desc
+        print("Uploaded article - ", response)
+        self.shift_date()
+        return response, cat_id, tokens
     
     
     async def main(self, 
@@ -291,23 +308,16 @@ class OpenAI_article(OpenAI_API, WP_API):
             titles_tasks.append(asyncio.create_task(self.create_titles(category['name'],article_num,category['id'])))
 
         titles_list = await asyncio.gather(*titles_tasks)
-
-        headers_tasks = []
-        for titles, category_id, title_tokens in titles_list:
-            for title in titles:
-                headers_tasks.append(asyncio.create_task(self.create_headers(title,header_num)))
-        
-        headers = await asyncio.gather(*headers_tasks)
+        print(titles_list)
 
         articles_tasks = []
-        for titles, category_id, title_tokens in titles_list:
-            for x, title in zip(headers, titles):
-                headers, image_desc, headers_tokens = x
-                print(title, headers)
-                articles_tasks.append(asyncio.create_task(self.write_article(headers, title, image_desc)))
+        for titles, cat_id, tokens in titles_list:
+            for title in titles:
+                articles_tasks.append(asyncio.create_task(self.write_article(title, header_num, cat_id, path, links, nofollow)))
 
-        texts = await asyncio.gather(*articles_tasks)
-        return texts
+        res = await asyncio.gather(*articles_tasks)
+
+        return res
 
 
 if __name__ == "__main__":
