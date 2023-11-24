@@ -121,7 +121,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                          subcategory_num:int
                          ) -> dict:
         #create categories according to site topic
-        categories, tokens = self.create_categories(topic, category_num)
+        categories, tokens = self.create_categories(topic, int(category_num))
         print(f"Created categories: {categories}")
         structure = {}
 
@@ -129,7 +129,7 @@ class OpenAI_article(OpenAI_API, WP_API):
             #paralelly for each category create description & subcategories
             for cat, cat_json, t in pool_cat.imap(self.new_category, categories):
                 tokens += t
-                subcats, subc_t = self.create_subcategories(cat, topic, subcategory_num)
+                subcats, subc_t = self.create_subcategories(cat, topic, int(subcategory_num))
                 tokens += subc_t
                 print(f"Created subcategories: {subcats} for category {cat} - {cat_json['link']}")
                 structure[cat] = subcats
@@ -308,7 +308,6 @@ class OpenAI_article(OpenAI_API, WP_API):
             titles_tasks.append(asyncio.create_task(self.create_titles(category['name'],article_num,category['id'])))
 
         titles_list = await asyncio.gather(*titles_tasks)
-        print(titles_list)
 
         articles_tasks = []
         for titles, cat_id, tokens in titles_list:
