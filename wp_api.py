@@ -2,6 +2,7 @@ import requests
 import base64
 from datetime import datetime
 from random import randint
+import json
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -18,6 +19,19 @@ class WP_API:
         self.url = f"https://{domain_name}/wp-json/wp/v2"
         wp_credentials = wp_login + ":" + wp_pass
         self.wp_token = base64.b64encode(wp_credentials.encode())
+        self.validate_credentials()
+
+
+
+    def validate_credentials(self):
+        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
+        response = requests.get(self.url+'/posts?per_page=1', headers=header)
+
+        if response.status_code == 200:
+            return 0
+        else:
+            print(response.json())
+            raise Exception("Invalid Wordpress credentials")
 
 
     def create_category(self, name:str, desc:str, parent_id:int = None) -> dict:
@@ -49,7 +63,7 @@ class WP_API:
     def get_category_id(self, category_name) -> dict:
         categories = self.get_categories()
         for category in categories:
-            if category['name'] == category_name:
+            if category['name'].lower() == category_name.lower():
                 print(f"Category {category['name']} exists with ID - {category['id']} - {category['link']}")
                 return {'id': category['id'], 'link': category['link']}
             
