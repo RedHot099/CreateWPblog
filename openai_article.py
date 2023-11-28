@@ -39,8 +39,8 @@ class OpenAI_article(OpenAI_API, WP_API):
         return self.domain  
 
 
-    def download_img(self, img_prompt, img_path) -> str:
-        urllib.request.urlretrieve(self.create_img(img_prompt), img_path)
+    async def download_img(self, img_prompt, img_path) -> str:
+        urllib.request.urlretrieve(await self.create_img(img_prompt), img_path)
         return img_path
         
 
@@ -109,39 +109,64 @@ class OpenAI_article(OpenAI_API, WP_API):
         return response, cat_id, tokens
     
 
-    def new_category(self, cat:str, parent_id:int = None) -> tuple[int, dict, int]:
-        cat_desc, tokens = self.write_cat_description(cat)
+    async def new_category(self, cat:str, parent_id:int = None) -> tuple[int, dict, int]:
+        cat_desc, tokens = await self.write_cat_description(cat)
         cat_json = self.create_category(cat, cat_desc, parent_id)
-        return cat, cat_json, tokens
+        return cat, cat_json["id"], tokens
 
 
-    def create_structure(self, 
+    async def create_substructure(self, 
+                                  topic: str,
+                                  subcategory_num: int,
+                                  category_name: str, 
+                                  cat_id: int,
+                                  ):
+        total_tokens = 0
+        subcategories, tokens = await self.create_subcategories(category_name, topic, subcategory_num)
+        total_tokens += tokens
+
+        subcategories_tasks = []
+        for subcateogory in subcategories:
+            subcategories_tasks.append(asyncio.create_task(self.new_category(subcateogory, cat_id)))
+        
+        created_subcategories = await asyncio.gather(*subcategories_tasks)
+
+        for _, _, tokens in created_subcategories:
+            total_tokens += tokens
+
+        return category_name, subcategories, total_tokens
+
+        
+        
+        
+    
+    async def create_structure(self, 
                          topic:str, 
                          category_num:int, 
                          subcategory_num:int
                          ) -> dict:
+        total_tokens = 0
         #create categories according to site topic
-        categories, tokens = self.create_categories(topic, int(category_num))
-        print(f"Created categories: {categories}")
+        categories, tokens = await self.create_categories(topic, int(category_num))
+        total_tokens += tokens
         structure = {}
 
-        with Pool() as pool_cat:
-            #paralelly for each category create description & subcategories
-            for cat, cat_json, t in pool_cat.imap(self.new_category, categories):
-                tokens += t
-                subcats, subc_t = self.create_subcategories(cat, topic, int(subcategory_num))
-                tokens += subc_t
-                print(f"Created subcategories: {subcats} for category {cat} - {cat_json['link']}")
-                structure[cat] = subcats
-                scats = [(c, cat_json['id']) for c in subcats]
-                with Pool() as pool_scat:
-                    pool_scat.starmap(self.new_category, scats)
-                    pool_scat.close()
-                    pool_scat.join()
-            pool_cat.close()
-            pool_cat.join()
+        categories_tasks = []
+        subcategories_tasks = []
+        for category in categories:
+            categories_tasks.append(asyncio.create_task(self.new_category(category)))
 
-        return structure, tokens
+        created_categories = await asyncio.gather(*categories_tasks)
+        for category, cat_id, tokens in created_categories:
+            subcategories_tasks.append(asyncio.create_task(self.create_substructure(topic, subcategory_num, category, cat_id)))
+            total_tokens += tokens
+
+        subcategories = await asyncio.gather(*subcategories_tasks)
+        for c, s, tokens in subcategories:
+            total_tokens += tokens
+            structure[c] = s
+
+        return structure, total_tokens
                     
 
     def populate_structure(self, 
@@ -254,14 +279,20 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         #Generate & download image
         if img_prompt != "":
-            img = self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
+            img = await self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
             #Upload image to WordPress
             img_id = self.upload_img(img)
             #Delete local image
             os.remove(img)
         else:
             print("No img prompt - TARAPATAS!!")
-            img_id = None
+            img = await self.download_img(
+                f"Create image for article titled - {title}", 
+                f"{path}files/test_photo{datetime.now().microsecond}.webp")
+            #Upload image to WordPress
+            img_id = self.upload_img(img)
+            #Delete local image
+            os.remove(img)
         
         #Upload article to Wordpress
         if img_id:
