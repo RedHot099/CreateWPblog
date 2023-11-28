@@ -99,31 +99,31 @@ class OpenAI_API:
         return cats
 
     
-    def create_categories(self, topic:str, category_num:int = 5) -> tuple[list[str], int]:
+    async def create_categories(self, topic:str, category_num:int = 5) -> tuple[list[str], int]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {category_num} nazw kategorii o dla strony blogowej o tematyce {topic}, każda z nazw kategorii powinna być powiązana z {topic}, podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
 
-        response = self.ask_openai(system, user, category_num*2.0)
+        response = await self.ask_openai(system, user, category_num*2.0)
         
-        return self.cleanup_category(response['choices'][0]['message']['content']), int(response["usage"]["total_tokens"])
+        return self.cleanup_category(response.choices[0].message.content), int(response.usage.total_tokens)
 
 
-    def create_subcategories(self, category, topic, subcategory_num = 5) -> tuple[list[str], int]:
+    async def create_subcategories(self, category, topic, subcategory_num = 5) -> tuple[list[str], int]:
         system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje. Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce {topic} podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user)
 
-        return [i[i.find(" ")+1:] for i in response['choices'][0]['message']['content'].split('\n')], int(response["usage"]["total_tokens"])
+        return [i[i.find(" ")+1:] for i in response.choices[0].message.content.split('\n')], int(response.usage.total_tokens)
     
 
-    def write_cat_description(self, text:str) -> tuple[str, int]:        
+    async def write_cat_description(self, text:str) -> tuple[str, int]:        
         system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz opis kategorii o nazwie {text} o długości maksymalnie 2 paragrafów'
 
-        response = self.ask_openai(system, user)
+        response = await self.ask_openai(system, user)
 
-        return response['choices'][0]['message']['content'], int(response["usage"]["total_tokens"])
+        return response.choices[0].message.content, int(response.usage.total_tokens)
     
 
     def cleanup_titles(self, text, num) -> list[str]:
@@ -241,16 +241,31 @@ class OpenAI_API:
         return response.choices[0].message.content, int(response.usage.total_tokens)
     
 
-    def create_img(self, img_prompt) -> str:
+    async def create_img(self, img_prompt) -> str:
         client = OpenAI(api_key=self.api_key)
-        helper = "Na zdjęciu znajdują się tylko przedmioty, ewentualnie martwa natura. "
-        response = client.images.generate(
-            model=self.image_model,
-            prompt=helper+img_prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1,
-        )
+        helper = "Na zdjęciu znajdują się tylko nieruchome przedmioty. "
+        try:
+            response = client.images.generate(
+                model=self.image_model,
+                prompt=helper+img_prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+        except openai.BadRequestError:
+            new_prompt = await self.ask_openai(
+                "You are moderator on an internet forum for kids. Rewrite given text, so it can be posted there.", 
+                img_prompt,
+                20.0
+            )
+            response = client.images.generate(
+                model=self.image_model,
+                prompt=helper+new_prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+
         image_url = response.data[0].url
         return image_url
     
