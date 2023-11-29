@@ -28,11 +28,14 @@ class WP_API:
         try:
             response = requests.get(self.url+'/posts?per_page=1', headers=header)
         except Exception as e:
+            print(self.url)
+            print(e)
             raise Exception(e)
 
         if response.status_code == 200:
             return 0
         else:
+            print(self.url)
             print(response.json())
             raise Exception("Invalid Wordpress credentials")
 
