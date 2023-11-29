@@ -25,7 +25,10 @@ class WP_API:
 
     def validate_credentials(self):
         header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
-        response = requests.get(self.url+'/posts?per_page=1', headers=header)
+        try:
+            response = requests.get(self.url+'/posts?per_page=1', headers=header)
+        except Exception as e:
+            raise Exception(e)
 
         if response.status_code == 200:
             return 0
