@@ -260,7 +260,7 @@ class OpenAI_API:
             )
             response = client.images.generate(
                 model=self.image_model,
-                prompt=helper+new_prompt,
+                prompt=helper+new_prompt.choices[0].message.content,
                 size="1024x1024",
                 quality="standard",
                 n=1,
