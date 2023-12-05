@@ -54,12 +54,12 @@ class Setup_WP:
 		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "button")))
 
 		#select language
-		if self.driver.find_element(By.CLASS_NAME, "button").get_attribute("id") == "language-continue":
+		if WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input#language-continue"))):
 			self.driver.find_element(By.CSS_SELECTOR, f"option[lang=\"{self.lang}\"]").click()
 			sleep(1)
 			self.driver.find_element(By.CLASS_NAME, "button").click()
 
-		self.driver.find_element(By.CLASS_NAME, "button").click()
+		WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "button"))).click()
 		sleep(1)
 
 	
@@ -79,7 +79,7 @@ class Setup_WP:
 
 	def connect_db(self, db_name:str, db_pass:str):
 		try:
-			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.ID, "dbname")))
+			WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.ID, "dbname")))
 		except:
 			if self.driver.find_element(By.ID, "weblog_title"): return -1
 			
@@ -96,6 +96,7 @@ class Setup_WP:
 
 
 	def give_name(self, name: str) -> tuple[str, str]:
+		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, "weblog_title")))
 		self.driver.find_element(By.ID, "weblog_title").clear()
 		self.driver.find_element(By.ID, "weblog_title").send_keys(name)
 		self.driver.find_element(By.ID, "user_login").send_keys("admin")
@@ -261,13 +262,12 @@ class Setup_WP:
 		try:
 			print("API key: ", self.driver.find_element(By.ID, "new-application-password-value").get_attribute("value"))
 		except:
-			print(self.driver.page_source)
 			print("No key value")
 		try:
 			api_key = WebDriverWait(self.driver, 6).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
 		except:
 			print("Error obtaining API key")
-			return None
+			raise LookupError
 		self.driver.close()
 		return str(api_key)
 
