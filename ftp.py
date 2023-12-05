@@ -67,7 +67,8 @@ class UploadFTP:
 
     def ping_unpack(self, url):
         code = 0
-        while code != 200:
+        retry = 50
+        while code != 200 and retry>0:
             try:
                 code = requests.get("http://" + url + "/wypakuj.php", verify=False).status_code
                 print(url, code)
@@ -76,6 +77,7 @@ class UploadFTP:
                 print("Cannot ping website")
             finally:
                 if code == 200: break
+                retry -= 1
                 sleep(2)
 
 
