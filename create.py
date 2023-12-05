@@ -25,6 +25,7 @@ class Create:
 			self.panel = "http://"+credentials["url"]
 		if self.panel.endswith("/"):
 			self.panel = self.panel[:-1]
+		self.panel = self.panel.lower()
 
 		options = webdriver.ChromeOptions()
 		options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -155,7 +156,7 @@ class Create:
 		#Copy ftp creds
 		sleep(1)
 		print(self.driver.current_url)
-		ftp_creds = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "dialog-content-wrapper"))).get_attribute("innerText").split('\n')
+		ftp_creds = WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME, "dialog-content-wrapper"))).get_attribute("innerText").split('\n')
 		ftp_creds = list(filter(None, ftp_creds))
 		ftp_user = ftp_creds[0].split('\t')[1]
 		ftp_pass = ftp_creds[1].split('\t')[1]
