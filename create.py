@@ -158,8 +158,6 @@ class Create:
 		sleep(0.5)
 		WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).send_keys("admin"+name.partition('.')[0])
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
-		print(WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).get_attribute("innerText"))
-		print(WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-password.grow"))).get_attribute("innerText"))
 		sleep(1.5)
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.-theme-safe.-size-big"))).click()
 
