@@ -1,11 +1,9 @@
 import time
 from random import randint
-from multiprocessing import Pool
-from functools import partial
 
 import openai
 from openai import OpenAI, AsyncOpenAI
-import asyncio
+from types import SimpleNamespace
 import httpx
 import re
 
@@ -49,9 +47,14 @@ class OpenAI_API:
         ]
         time.sleep(randint(0,2))
 
-        while True:
+        response = SimpleNamespace(**{"choices": [SimpleNamespace(**{"message": SimpleNamespace(**{"content": ""})})]})
+
+        while not response.choices[0].message.content:
             try:
                 response = await self.client.with_options(timeout=timeout).chat.completions.create(model=self.text_model, messages=prompt)
+            except openai.AuthenticationError:
+                print("Wrong api key!")
+                raise Exception("Wrong API key")
             except openai.RateLimitError:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
@@ -64,7 +67,7 @@ class OpenAI_API:
                 continue
             except openai.APIConnectionError as e:
                 print("The server could not be reached")
-                print(e.__cause__)  # an underlying Exception, likely raised within httpx.
+                print(e.__cause__)
                 time.sleep(3)
                 continue
             except openai.APIError as e:
@@ -75,7 +78,6 @@ class OpenAI_API:
                 print("HTTPX timeout error, waiting & resuming - ", timeout)
                 time.sleep(3)
                 continue
-            break
 
         return response
     
