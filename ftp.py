@@ -44,11 +44,13 @@ class UploadFTP:
                     self.dir_del_r(server, '')
 
                     #upload files to FTP
-                    with open(path + '/' + self.wp_file, 'rb') as file:
-                        server.storbinary('STOR ' + self.wp_file, file)                
+                    while self.wp_file not in server.nlst():
+                        with open(path + '/' + self.wp_file, 'rb') as file:
+                            server.storbinary('STOR ' + self.wp_file, file)                
 
-                    with open(path + '/wypakuj.php', 'rb') as file:
-                        server.storbinary('STOR wypakuj.php', file)
+                    while 'wypakuj.php' not in server.nlst():
+                        with open(path + '/wypakuj.php', 'rb') as file:
+                            server.storbinary('STOR wypakuj.php', file)
 
                     #ping to unpack .zip
                     print("Unpacking WordPress")
