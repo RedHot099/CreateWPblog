@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
 import urllib.request
+from PIL import Image
+from io import BytesIO
+import requests
 import os
 import json
 import asyncio
@@ -40,7 +43,10 @@ class OpenAI_article(OpenAI_API, WP_API):
 
 
     async def download_img(self, img_prompt, img_path) -> str:
-        urllib.request.urlretrieve(await self.create_img(img_prompt), img_path)
+        image = Image.open(BytesIO(requests.get(await self.create_img(img_prompt)).content))
+        # image = image.resize((1200, 628)).convert('RGB')
+        image.save(img_path, format='WEBP')
+
         return img_path
         
 
