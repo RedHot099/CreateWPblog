@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-import urllib.request
 from PIL import Image
 from io import BytesIO
+from itertools import zip_longest
 import requests
 import os
 import json
@@ -349,7 +349,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         articles_tasks = []
         for titles, cat_id, tokens in titles_list:
             for title in titles:
-                articles_tasks.append(asyncio.create_task(self.write_article(title, header_num, cat_id, path, links, nofollow)))
+                articles_tasks.append(asyncio.create_task(self.write_article(title, header_num, cat_id, path, [links.pop()] if links else None, nofollow)))
 
         res = await asyncio.gather(*articles_tasks)
 
