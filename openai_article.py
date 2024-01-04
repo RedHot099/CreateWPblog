@@ -346,6 +346,10 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         titles_list = await asyncio.gather(*titles_tasks)
 
+        try:
+            json.loads(links)
+        except:
+            links = []
         articles_tasks = []
         for titles, cat_id, tokens in titles_list:
             for title in titles:
