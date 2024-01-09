@@ -346,12 +346,9 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         titles_list = await asyncio.gather(*titles_tasks)
 
-        try:
-            json.loads(links)
-        except:
-            links = []
+        print(links)
         articles_tasks = []
-        for titles, cat_id, tokens in titles_list:
+        for titles, cat_id, _ in titles_list:
             for title in titles:
                 articles_tasks.append(asyncio.create_task(self.write_article(title, header_num, cat_id, path, [links.pop()] if links else None, nofollow)))
 
