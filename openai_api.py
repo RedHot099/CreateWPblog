@@ -27,6 +27,8 @@ class OpenAI_API:
             api_key=self.api_key
             )
 
+        self.timeout_multiplier = 1
+
         self.langs = {
             "pl": " Odpowiedz w języku Polskim - Reply in Polish language.",
             "de": " Odpowiedz w języku Niemieckim - Reply in German language.",
@@ -51,16 +53,18 @@ class OpenAI_API:
 
         while not response.choices[0].message.content:
             try:
-                response = await self.client.with_options(timeout=timeout).chat.completions.create(model=self.text_model, messages=prompt)
+                response = await self.client.with_options(timeout=timeout*self.timeout_multiplier).chat.completions.create(model=self.text_model, messages=prompt)
             except openai.AuthenticationError:
                 print("Wrong api key!")
                 raise Exception("Wrong API key")
             except openai.RateLimitError:
                 print("Too many requests, waiting 30s and trying again")
                 time.sleep(30)
+                self.timeout_multiplier *= 1.6
                 continue
             except openai.APITimeoutError:
                 print("OpenAI timeout - ", timeout)
+                self.timeout_multiplier *= 1.5
             except openai.APIStatusError as e:
                 print("Unknown error, waiting & resuming - ", e.status_code, e.response)
                 time.sleep(3)
@@ -76,6 +80,7 @@ class OpenAI_API:
                 continue
             except httpx.TimeoutException as e:
                 print("HTTPX timeout error, waiting & resuming - ", timeout)
+                self.timeout_multiplier *= 1.2
                 time.sleep(3)
                 continue
 
@@ -219,15 +224,15 @@ class OpenAI_API:
             base = text.find(f"<a href=\"{url}\"")
             start = base + text[base:].find(">")
             end = start + text[start:].find("</a")
-            print("Wrong keyword in ahref - ", text[base:end+4])
-            print(keyword)
+            # print("Wrong keyword in ahref - ", text[base:end+4])
+            # print(keyword)
             return header, text[:start+1]+keyword+text[end:], int(response.usage.total_tokens)
         elif text.find("<a ") > 0:
             #swap link&keyword
             start = text.find("<a ")
             end = start + text[start:].find("</a")
-            print("Wrong link in anhor", text[start:end+4], start, end)
-            print(url, keyword)
+            # print("Wrong link in anhor", text[start:end+4], start, end)
+            # print(url, keyword)
             return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword + text[end:], int(response.usage.total_tokens)
         else:
             #generate again
