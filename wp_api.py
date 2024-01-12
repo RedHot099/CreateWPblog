@@ -51,7 +51,7 @@ class WP_API:
 
         response = requests.post(self.url+"/categories", headers=header, json=post, verify = False)
         try:
-            print(f"Created category with ID - {response.json()['id']} - {response.json()['link']}")
+            # print(f"Created category with ID - {response.json()['id']} - {response.json()['link']}")
             response.json()['id']
         except:
             return self.get_category_id(name)

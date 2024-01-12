@@ -261,7 +261,7 @@ class OpenAI_article(OpenAI_API, WP_API):
                             ) -> tuple[str, int, int]:
         
         #generate headers & promt for generating image
-        print("Creating headers for - ", title)
+        # print("Creating headers for - ", title)
         headers, img_prompt, headers_tokens = await self.create_headers(title,header_num)
         
         p_tasks = []
@@ -272,7 +272,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         #queue up rest of paragraphs
         for h in headers:
             p_tasks.append(asyncio.create_task(self.write_paragraph(title, h)))
-        print("Writing paragraphs for article - ", title)
+        # print("Writing paragraphs for article - ", title)
         paragraphs = await asyncio.gather(*p_tasks)
         #merge all texts into single string article
         text = ""
@@ -308,7 +308,7 @@ class OpenAI_article(OpenAI_API, WP_API):
             response = self.post_article(title, text, desc, "1", self.publish_date['t'], cat_id)['link']
 
 
-        print("Uploaded article - ", response)
+        # print("Uploaded article - ", response)
         self.shift_date()
         return response, cat_id, tokens
     
@@ -346,7 +346,6 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         titles_list = await asyncio.gather(*titles_tasks)
 
-        print(links)
         articles_tasks = []
         for titles, cat_id, _ in titles_list:
             for title in titles:
