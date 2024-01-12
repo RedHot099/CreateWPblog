@@ -110,7 +110,7 @@ class Create:
 		self.driver.get(self.panel + "/user/ssl/letsencrypt")
 		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.ui-tabs-header-tab"))).click()
 		WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.-theme-safe.-size-big"))).click()
-		WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.dialog-wrap")))
+		WebDriverWait(self.driver, 90).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.dialog-wrap")))
 		sleep(1)
 
 
