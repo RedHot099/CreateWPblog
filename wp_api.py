@@ -87,7 +87,11 @@ class WP_API:
 
         response = requests.post(url=self.url+"/media",data=data,headers=header, verify = False)
 
-        return response.json()['id']
+        try:
+            return response.json()['id']
+        except:
+            print("Problem while uploading image", response.json())
+            return None
     
 
     def post_article(self, 
