@@ -6,6 +6,7 @@ from openai import OpenAI, AsyncOpenAI
 from types import SimpleNamespace
 import httpx
 import re
+import inspect
 
 
 class OpenAI_API:
@@ -83,6 +84,10 @@ class OpenAI_API:
                 self.timeout_multiplier *= 1.2
                 time.sleep(3)
                 continue
+            except RuntimeError as e:
+                print("Runtime Error")
+                print(inspect.stack())
+                continue
 
         return response
     
@@ -129,7 +134,7 @@ class OpenAI_API:
         system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz opis kategorii o nazwie {text} o długości maksymalnie 2 paragrafów'
 
-        response = await self.ask_openai(system, user)
+        response = await self.ask_openai(system, user, 150.0)
 
         return response.choices[0].message.content, int(response.usage.total_tokens)
     
@@ -146,7 +151,7 @@ class OpenAI_API:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
-        response = await self.ask_openai(system, user, article_num*8.0)
+        response = await self.ask_openai(system, user, article_num*20.0)
 
         return self.cleanup_titles(response.choices[0].message.content, article_num), cat_id, int(response.usage.total_tokens)
     
@@ -169,7 +174,7 @@ class OpenAI_API:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
         user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu. Nie używaj cudzysłowów.' 
         
-        response = await self.ask_openai(system, user, header_num*10.0)
+        response = await self.ask_openai(system, user, header_num*120.0)
         
         header_prompts, img_prompt = self.cleanup_header(response.choices[0].message.content, header_num)
 
@@ -194,7 +199,7 @@ class OpenAI_API:
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>. Unikaj używania tagu <article>'
         
         time.sleep(randint(0,3))
-        response = await self.ask_openai(system, user, 50.0)
+        response = await self.ask_openai(system, user, 180.0)
 
         return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens)
     
@@ -205,7 +210,7 @@ class OpenAI_API:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f"Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header} powiązany z frazą {keyword}. W treści powinien znaleźć się jeden link HTML w postaci „<a href=\"{url}\">{keyword}</a>” do podstrony {url}, anchorem tego linku powinna być fraza kluczowa (może być odmieniona, może być zmieniona kolejność wyrazów, może zostać użyty synonim). Tekst umieść w <p></p>."
         
-        response = await self.ask_openai(system, user)
+        response = await self.ask_openai(system, user, 180.0)
 
         text = self.remove_non_p_tags(response.choices[0].message.content)
 
@@ -244,7 +249,7 @@ class OpenAI_API:
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         user = f'Dla poniższego artykułu napisz 4 zdania = jeden paragraf, podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
         
-        response = await self.ask_openai(system, user, 40.0)
+        response = await self.ask_openai(system, user, 260.0)
 
         return response.choices[0].message.content, int(response.usage.total_tokens)
     
