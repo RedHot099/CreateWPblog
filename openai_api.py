@@ -93,7 +93,6 @@ class OpenAI_API:
                 print(inspect.stack())
                 continue
             finally:
-                print(self.base_sleep)
                 if self.base_sleep > 111:
                     raise Exception("Too many OpenAI API timeouts - please try again later")
 
