@@ -1,4 +1,3 @@
-import time
 from random import randint
 
 import openai
@@ -7,6 +6,7 @@ from types import SimpleNamespace
 import httpx
 import re
 import inspect
+import asyncio
 
 
 class OpenAI_API:
@@ -29,6 +29,7 @@ class OpenAI_API:
             )
 
         self.timeout_multiplier = 1
+        self.base_sleep = 3
 
         self.langs = {
             "pl": " Odpowiedz w języku Polskim - Reply in Polish language.",
@@ -48,7 +49,7 @@ class OpenAI_API:
             {"role": "system", "content": system + self.lang_prompt()},
             {"role": "user", "content": user}
         ]
-        time.sleep(randint(0,2))
+        await asyncio.sleep(randint(0,2))
 
         response = SimpleNamespace(**{"choices": [SimpleNamespace(**{"message": SimpleNamespace(**{"content": ""})})]})
 
@@ -59,35 +60,42 @@ class OpenAI_API:
                 print("Wrong api key!")
                 raise Exception("Wrong API key")
             except openai.RateLimitError:
-                print("Too many requests, waiting 30s and trying again")
-                time.sleep(30)
-                self.timeout_multiplier *= 1.6
+                print("Too many requests, waiting {}s and trying again".format(self.base_sleep*10))
+                await asyncio.sleep(self.base_sleep * 10)
+                self.base_sleep += 2
                 continue
             except openai.APITimeoutError:
                 print("OpenAI timeout - ", timeout)
                 self.timeout_multiplier *= 1.5
             except openai.APIStatusError as e:
                 print("Unknown error, waiting & resuming - ", e.status_code, e.response)
-                time.sleep(3)
+                await asyncio.sleep(self.base_sleep)
+                self.base_sleep += 1
                 continue
             except openai.APIConnectionError as e:
                 print("The server could not be reached")
                 print(e.__cause__)
-                time.sleep(3)
+                await asyncio.sleep(self.base_sleep)
+                self.base_sleep += 1
                 continue
             except openai.APIError as e:
                 print("Unknown error, waiting & resuming - ", e)
-                time.sleep(3)
+                await asyncio.sleep(self.base_sleep)
+                self.base_sleep += 1
                 continue
             except httpx.TimeoutException as e:
                 print("HTTPX timeout error, waiting & resuming - ", timeout)
                 self.timeout_multiplier *= 1.2
-                time.sleep(3)
+                await asyncio.sleep(self.base_sleep)
                 continue
             except RuntimeError as e:
                 print("Runtime Error")
                 print(inspect.stack())
                 continue
+            finally:
+                print(self.base_sleep)
+                if self.base_sleep > 111:
+                    raise Exception("Too many OpenAI API timeouts - please try again later")
 
         return response
     
@@ -198,7 +206,7 @@ class OpenAI_API:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz fragment artykułu o tematyce {title} skupiający się na aspekcie {header}. Artykuł powinien być zoptymalizowany pod słowa kluczowe dotyczące tego tematu. Artykuł powinien zawierać informacje na temat. Tekst umieść w <p></p>. Unikaj używania tagu <article>'
         
-        time.sleep(randint(0,3))
+        await asyncio.sleep(randint(0,3))
         response = await self.ask_openai(system, user, 180.0)
 
         return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens)
