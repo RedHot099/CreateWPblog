@@ -21,6 +21,13 @@ class OpenAI_API:
         self.text_model = text_model
         self.image_model = image_model
         self.total_tokens = 0 
+        self.models_cost = {
+            "dall-e-3": 0.040, 
+            "dall-e-2": 0.020,
+            "gpt-3.5-turbo-1106": [0.0010/1000, 0.0020/1000], 
+            "gpt-4": [0.03/1000, 0.06/1000],
+            "gpt-4-32k": [0.06/1000, 0.12/1000]
+        }
 
         self.lang = lang
 
@@ -119,31 +126,31 @@ class OpenAI_API:
         return cats
 
     
-    async def create_categories(self, topic:str, category_num:int = 5) -> tuple[list[str], int]:
+    async def create_categories(self, topic:str, category_num:int = 5) -> tuple[list[str], int, float]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {category_num} nazw kategorii o dla strony blogowej o tematyce {topic}, każda z nazw kategorii powinna być powiązana z {topic}, podaj tylko nazwy kategorii. Każda nazwa kategorii powinna mieć od 1 do 3 słów.'
 
         response = await self.ask_openai(system, user, category_num*2.0)
         
-        return self.cleanup_category(response.choices[0].message.content), int(response.usage.total_tokens)
+        return self.cleanup_category(response.choices[0].message.content), int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
 
 
-    async def create_subcategories(self, category, topic, subcategory_num = 5) -> tuple[list[str], int]:
+    async def create_subcategories(self, category, topic, subcategory_num = 5) -> tuple[list[str], int, float]:
         system =  f"Jesteś ekspertem w temacie {category} i musisz w krótki i precyzyjny sposób przedstawić informacje. Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {subcategory_num} nazw podkategorii (o długości od 1 do 4 słów) dla kategorii {category} o tematyce {topic} podaj tylko nazwy podkategorii. Każda nazwa podkategorii powinna mieć długość od 1 do 4 słów.'
 
         response = await self.ask_openai(system, user)
 
-        return [i[i.find(" ")+1:] for i in response.choices[0].message.content.split('\n')], int(response.usage.total_tokens)
+        return [i[i.find(" ")+1:] for i in response.choices[0].message.content.split('\n')], int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
     
 
-    async def write_cat_description(self, text:str) -> tuple[str, int]:        
+    async def write_cat_description(self, text:str) -> tuple[str, int, float]:        
         system = "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
         user = f'Napisz opis kategorii o nazwie {text} o długości maksymalnie 2 paragrafów'
 
         response = await self.ask_openai(system, user, 150.0)
 
-        return response.choices[0].message.content, int(response.usage.total_tokens)
+        return response.choices[0].message.content, int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
     
 
     def cleanup_titles(self, text, num) -> list[str]:
@@ -154,13 +161,13 @@ class OpenAI_API:
         return titles        
     
 
-    async def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> tuple[list[str], int, int]:
+    async def create_titles(self, topic:str, article_num:int = 5, cat_id:int = 1) -> tuple[list[str], int, int, float]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks."
         user = f'Przygotuj {str(article_num)+" tytułów artykułów" if article_num>1 else "tytuł artykułu"} o tematyce {topic} podaj tylko tytuły'
             
         response = await self.ask_openai(system, user, article_num*20.0)
 
-        return self.cleanup_titles(response.choices[0].message.content, article_num), cat_id, int(response.usage.total_tokens)
+        return self.cleanup_titles(response.choices[0].message.content, article_num), cat_id, int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
     
 
     def cleanup_header(self, text, header_num) -> tuple[list[str], int]:
@@ -177,7 +184,7 @@ class OpenAI_API:
         return headers, img
 
 
-    async def create_headers(self, title:str, header_num:int = 5) -> tuple[list[str], str, int]:
+    async def create_headers(self, title:str, header_num:int = 5) -> tuple[list[str], str, int, float]:
         system = "Give most precise answer without explanation nor context. List your answear line by line. Don't use quotemarks"
         user = f'Wylistuj {header_num} nagłówków dla artykułu skupionego na tematyce {title} oraz na końcu krótki opis zdjęcia, które pasowałoby do całości artykułu. Nie używaj cudzysłowów.' 
         
@@ -185,7 +192,7 @@ class OpenAI_API:
         
         header_prompts, img_prompt = self.cleanup_header(response.choices[0].message.content, header_num)
 
-        return header_prompts, img_prompt, int(response.usage.total_tokens)
+        return header_prompts, img_prompt, int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
     
 
     def remove_non_p_tags(self, text):
@@ -198,7 +205,7 @@ class OpenAI_API:
         return text
     
 
-    async def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str, str, int]:
+    async def write_paragraph(self, title:str, header:str, keyword:str = "", url:str  = "", nofollow:int = 0) -> tuple[str, str, int, float]:
         if (keyword!="" and url!=""):
             linked_response = await self.write_paragraph_linked(title, header, keyword, url, nofollow)
             return linked_response
@@ -208,10 +215,10 @@ class OpenAI_API:
         await asyncio.sleep(randint(0,3))
         response = await self.ask_openai(system, user, 180.0)
 
-        return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens)
+        return header, self.remove_non_p_tags(response.choices[0].message.content), int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
     
 
-    async def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int]:
+    async def write_paragraph_linked(self, title:str, header:str, keyword:str, url:str, nofollow:int = 0) -> tuple[str, str, int, float]:
         if not url.startswith("http"):
             url = "https://"+url
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem."
@@ -230,7 +237,7 @@ class OpenAI_API:
             text = text[:end] + nf + text[end:]
 
         if text.find(f"<a href=\"{url}\">{keyword}</a>") > 0:
-            return header, text, int(response.usage.total_tokens)
+            return header, text, int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
         elif text.find(f"<a href=\"{url}\"") > 0:
             #swap the keword
             base = text.find(f"<a href=\"{url}\"")
@@ -238,27 +245,27 @@ class OpenAI_API:
             end = start + text[start:].find("</a")
             # print("Wrong keyword in ahref - ", text[base:end+4])
             # print(keyword)
-            return header, text[:start+1]+keyword+text[end:], int(response.usage.total_tokens)
+            return header, text[:start+1]+keyword+text[end:], int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
         elif text.find("<a ") > 0:
             #swap link&keyword
             start = text.find("<a ")
             end = start + text[start:].find("</a")
             # print("Wrong link in anhor", text[start:end+4], start, end)
             # print(url, keyword)
-            return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword + text[end:], int(response.usage.total_tokens)
+            return header, text[:start+2] + " href=\""+url+"\""+nf+">"+keyword + text[end:], int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
         else:
             #generate again
             return await self.write_paragraph_linked(title, header, keyword, url, nofollow)
 
 
-    async def write_description(self, text:str) -> tuple[str, int]:
+    async def write_description(self, text:str) -> tuple[str, int, float]:
         system =  "Jesteś wnikliwym autorem artykułów, który dokładnie opisuje wszystkie zagadnienia związane z tematem. Napisz tylko jeden paragraf"
         reduced_text = " ".join(text.split()[:500]) if len(text.split()) > 500 else text
         user = f'Dla poniższego artykułu napisz 4 zdania = jeden paragraf, podsumowujących jego treść i zachęcający czytelnika do przeczytania całości artykułu:\n{reduced_text}'
         
         response = await self.ask_openai(system, user, 260.0)
 
-        return response.choices[0].message.content, int(response.usage.total_tokens)
+        return response.choices[0].message.content, int(response.usage.total_tokens), float(int(response.usage.total_tokens)*self.models_cost[self.text_model][1])
     
 
     async def create_img(self, img_prompt) -> str:

@@ -47,7 +47,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         # image = image.resize((1200, 628)).convert('RGB')
         image.save(img_path, format='WEBP')
 
-        return img_path
+        return img_path, self.models_cost[self.image_model]
         
 
     def shift_date(self) -> datetime:
@@ -64,7 +64,10 @@ class OpenAI_article(OpenAI_API, WP_API):
                        links:list[dict] = None,
                        nofollow:int = 0
                        ) -> tuple[str, int, int]:
-        headers, img_prompt, tokens = self.create_headers(title,header_num)
+        total_tokens, total_cost = 0, 0
+        headers, img_prompt, tokens, cost = self.create_headers(title,header_num)
+        total_tokens += tokens
+        total_cost += cost
         text = ""
 
         if links[0]['keyword'] == '' and links[0]['url'] == '':
@@ -115,10 +118,10 @@ class OpenAI_article(OpenAI_API, WP_API):
         return response, cat_id, tokens
     
 
-    async def new_category(self, cat:str, parent_id:int = None) -> tuple[int, dict, int]:
-        cat_desc, tokens = await self.write_cat_description(cat)
+    async def new_category(self, cat:str, parent_id:int = None) -> tuple[int, dict, int, float]:
+        cat_desc, tokens, cost = await self.write_cat_description(cat)
         cat_json = self.create_category(cat, cat_desc, parent_id)
-        return cat, cat_json["id"], tokens
+        return cat, cat_json["id"], tokens, cost
 
 
     async def create_substructure(self, 
@@ -128,8 +131,10 @@ class OpenAI_article(OpenAI_API, WP_API):
                                   cat_id: int,
                                   ):
         total_tokens = 0
-        subcategories, tokens = await self.create_subcategories(category_name, topic, subcategory_num)
+        total_cost = 0
+        subcategories, tokens, cost = await self.create_subcategories(category_name, topic, subcategory_num)
         total_tokens += tokens
+        total_cost += cost
 
         subcategories_tasks = []
         for subcateogory in subcategories:
@@ -137,10 +142,11 @@ class OpenAI_article(OpenAI_API, WP_API):
         
         created_subcategories = await asyncio.gather(*subcategories_tasks)
 
-        for _, _, tokens in created_subcategories:
+        for _, _, tokens, cost in created_subcategories:
             total_tokens += tokens
+            total_cost += cost
 
-        return category_name, subcategories, total_tokens
+        return category_name, subcategories, total_tokens, total_cost
 
         
         
@@ -150,11 +156,13 @@ class OpenAI_article(OpenAI_API, WP_API):
                          topic:str, 
                          category_num:int, 
                          subcategory_num:int
-                         ) -> dict:
+                         ) -> tuple[dict, int, float] :
         total_tokens = 0
+        total_cost = 0
         #create categories according to site topic
-        categories, tokens = await self.create_categories(topic, int(category_num))
+        categories, tokens, cost = await self.create_categories(topic, int(category_num))
         total_tokens += tokens
+        total_cost += cost
         structure = {}
 
         categories_tasks = []
@@ -163,16 +171,18 @@ class OpenAI_article(OpenAI_API, WP_API):
             categories_tasks.append(asyncio.create_task(self.new_category(category)))
 
         created_categories = await asyncio.gather(*categories_tasks)
-        for category, cat_id, tokens in created_categories:
+        for category, cat_id, tokens, cost in created_categories:
             subcategories_tasks.append(asyncio.create_task(self.create_substructure(topic, subcategory_num, category, cat_id)))
             total_tokens += tokens
+            total_cost += cost
 
         subcategories = await asyncio.gather(*subcategories_tasks)
-        for c, s, tokens in subcategories:
+        for c, s, tokens, cost in subcategories:
             total_tokens += tokens
+            total_cost += cost
             structure[c] = s
 
-        return structure, total_tokens
+        return structure, total_tokens, total_cost
                     
 
     def populate_structure(self, 
@@ -260,9 +270,13 @@ class OpenAI_article(OpenAI_API, WP_API):
                             nofollow:int = 0
                             ) -> tuple[str, int, int]:
         
+        total_tokens = 0
+        total_cost = 0
         #generate headers & promt for generating image
         # print("Creating headers for - ", title)
-        headers, img_prompt, headers_tokens = await self.create_headers(title,header_num)
+        headers, img_prompt, headers_tokens, header_cost = await self.create_headers(title,header_num)
+        total_tokens += headers_tokens
+        total_cost += header_cost
         
         p_tasks = []
         #write paragraphs with links first
@@ -276,29 +290,34 @@ class OpenAI_article(OpenAI_API, WP_API):
         paragraphs = await asyncio.gather(*p_tasks)
         #merge all texts into single string article
         text = ""
-        for header, paragraph, tokens in paragraphs:
+        for header, paragraph, tokens, cost in paragraphs:
             text += "<h2>"+header+"</h2>"
             text += paragraph
+            total_tokens += tokens
+            total_cost += cost
 
         #Write description
-        desc, tokens = await self.write_description(text)
+        desc, tokens, cost = await self.write_description(text)
+        total_tokens += tokens
+        total_cost += cost
 
         #Generate & download image
         if img_prompt != "":
-            img = await self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
+            img, cost = await self.download_img(img_prompt, f"{path}files/test_photo{datetime.now().microsecond}.webp")
             #Upload image to WordPress
             img_id = self.upload_img(img)
             #Delete local image
             os.remove(img)
         else:
             print("No img prompt - TARAPATAS!!")
-            img = await self.download_img(
+            img, cost = await self.download_img(
                 f"Create image for article titled - {title}", 
                 f"{path}files/test_photo{datetime.now().microsecond}.webp")
             #Upload image to WordPress
             img_id = self.upload_img(img)
             #Delete local image
             os.remove(img)
+        total_cost += cost
         
         #Upload article to Wordpress
         if img_id:
@@ -310,7 +329,7 @@ class OpenAI_article(OpenAI_API, WP_API):
 
         # print("Uploaded article - ", response)
         self.shift_date()
-        return response, cat_id, tokens
+        return response, cat_id, total_tokens, total_cost
     
     
     async def main(self, 
@@ -347,7 +366,7 @@ class OpenAI_article(OpenAI_API, WP_API):
         titles_list = await asyncio.gather(*titles_tasks)
 
         articles_tasks = []
-        for titles, cat_id, _ in titles_list:
+        for titles, cat_id, _, _ in titles_list:
             for title in titles:
                 articles_tasks.append(asyncio.create_task(self.write_article(title, header_num, cat_id, path, [links.pop()] if links else None, nofollow)))
 
