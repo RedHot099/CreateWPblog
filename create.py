@@ -79,23 +79,35 @@ class Create:
 			print("Cannot set IP")
 			return -1
 		ip = s.gethostbyname(name)
-		if (self.driver.find_element(By.CSS_SELECTOR, "tbody.q-virtual-scroll__content > tr > td:nth-child(2)").get_attribute("innerText") != ip):
-			try:
-				self.driver.find_elements(By.CSS_SELECTOR, "a.ui-useful-links-entry")[0].click()
-				if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") != ip):
-					self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
-					for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
-						print("Dostępny ip - "+i.get_attribute("innerText"), i.get_attribute("innerText")==ip)
-						if i.get_attribute("innerText") == ip:
-							i.click()
-							break
-			except:
-				print("Brak wolnych adresów IP")
-				return 0
-			try:
-				self.driver.find_element(By.CSS_SELECTOR, "button.-theme-primary.-size-big").click()
-			except:
-				print("Brak adresu IP w puli - " + ip)
+		for row in self.driver.find_elements(By.CSS_SELECTOR, "tbody.q-virtual-scroll__content > tr"):
+			if row.find_elements(By.CSS_SELECTOR, "td")[1].get_attribute("innerText") == ip:
+				print("IP addres already registered")
+				return 1
+		try:
+			#open add new IP address popup window
+			self.driver.find_element(By.CSS_SELECTOR, "a.ui-useful-links-entry").click()
+			sleep(1)
+			WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "span.Select__Button__Label")))
+			if (self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText") == ip):
+				#correct IP adress already selected
+				pass
+			else:
+				#unwrap list and select correct IP address
+				self.driver.find_element(By.CSS_SELECTOR, "div.Select>button.Select__Button").click()
+				for i in self.driver.find_elements(By.CSS_SELECTOR, "span.Select__Dropdown__Items__Item"):
+					if i.get_attribute("innerText") == ip:
+						i.click()
+						break
+			print("Add IP address: {}".format(self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText")))
+			self.driver.find_element(By.CSS_SELECTOR, "button.button.-theme-primary.-size-big.cursor-pointer").click()
+		except Exception as e:
+			print(e)
+			print("Brak wolnych adresów IP")
+			return 0
+		# 	try:
+		# 		self.driver.find_element(By.CSS_SELECTOR, "button.-theme-primary.-size-big").click()
+		# 	except:
+		# 		print("Brak adresu IP w puli - " + ip)
 
 
 	def add_ssl(self):
