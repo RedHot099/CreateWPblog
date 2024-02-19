@@ -266,7 +266,6 @@ class Setup_WP:
 		try:
 			api_key = WebDriverWait(self.driver, 6).until(EC.presence_of_element_located((By.ID, "new-application-password-value"))).get_attribute("value")
 		except:
-			print("Error obtaining API key")
 			raise LookupError
 		self.driver.close()
 		return str(api_key)

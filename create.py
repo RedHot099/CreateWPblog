@@ -129,21 +129,32 @@ class Create:
 	def add_db(self, name:str):
 		print("DataBase")
 		#DB
-		self.driver.get(f'{self.panel}/user/database/create')
-		WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).send_keys(name.partition('.')[0])
-		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
-		sleep(0.5)
-		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.-theme-safe.-size-big"))).click()
+		try:
+			self.driver.get(f'{self.panel}/user/database/create')
+			WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).send_keys(name.partition('.')[0])
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
+			sleep(0.5)
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.-theme-safe.-size-big"))).click()
 
-		#Copy db creds
-		sleep(2)
-		db_creds = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "dialog-content-wrapper"))).get_attribute("innerText").split('\n')
-		db_creds = list(filter(None, db_creds))
-		db_user = db_creds[-2].split('\t')[-1]
-		db_pass = db_creds[-1].split('\t')[-1]
+			#Copy db creds
+			sleep(2)
+			db_creds = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "dialog-content-wrapper"))).get_attribute("innerText").split('\n')
+			db_creds = list(filter(None, db_creds))
+			db_user = db_creds[-2].split('\t')[-1]
+			db_pass = db_creds[-1].split('\t')[-1]
+		except:
+			self.driver.get(f'{self.panel}/user/database')
+			WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input#tw-input-0"))).send_keys(name.partition('.')[0])
+			WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.whitespace-nowrap.tw-button"))).click()
 
-		print(f"{db_user} : {db_pass}")
-		return db_user, db_pass
+			db_creds = WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "pre.group"))).get_attribute("innerText").split('\n')
+
+			db_creds = list(filter(None, db_creds))
+			db_user = db_creds[-2].split(' ')[-1]
+			db_pass = db_creds[-1].split(' ')[-1]
+		finally:
+			print(f"{db_user} : {db_pass}")
+			return db_user, db_pass
 	
 	
 	def add_ftp(self, name):
