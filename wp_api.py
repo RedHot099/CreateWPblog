@@ -21,6 +21,29 @@ class WP_API:
         self.wp_token = base64.b64encode(wp_credentials.encode())
         self.validate_credentials()
 
+    
+    def get_post_count(self):
+        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
+        try:
+            response = requests.get(self.url+"/posts?per_page=1", headers=header)
+        except Exception as e:
+            print(self.url+" - "+e)
+            return 0
+
+        if response.status_code == 200:
+            return int(response.headers['x-wp-total'])
+
+
+    def get_category_count(self):
+        header = {'Authorization': 'Basic ' + self.wp_token.decode('utf-8')}
+        try:
+            response = requests.get(self.url+"/categories?per_page=1", headers=header)
+        except Exception as e:
+            print(self.url+" - "+e)
+            return 0
+
+        if response.status_code == 200:
+            return int(response.headers['x-wp-total'])
 
 
     def validate_credentials(self):
