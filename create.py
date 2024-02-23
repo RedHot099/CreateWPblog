@@ -122,7 +122,7 @@ class Create:
 		self.driver.get(self.panel + "/user/ssl/letsencrypt")
 		WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.ui-tabs-header-tab"))).click()
 		WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.-theme-safe.-size-big"))).click()
-		WebDriverWait(self.driver, 90).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.dialog-wrap")))
+		WebDriverWait(self.driver, 35).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.dialog-wrap")))
 		sleep(1)
 
 
@@ -178,9 +178,28 @@ class Create:
 					a.click()
 					break
 			print("Selected domain: ", self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText"))
+		try:
+			if(name != WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "span.domain"))).get_attribute("innerText")):
+				print("Wrong domain: "+ self.driver.find_element(By.CSS_SELECTOR, "span.domain").get_attribute("innerText"))
+				self.driver.find_element(By.CSS_SELECTOR, "span.domain").click()
+				for a in self.driver.find_elements(By.CLASS_NAME , "refreshed-domain-select-dropdown-item"):
+					if name == a.get_attribute("innerText"):
+						a.click()
+						break
+				print("Selected domain: ", self.driver.find_element(By.CSS_SELECTOR, "span.domain").get_attribute("innerText"))
+		except:
+			self.driver.find_element(By.CSS_SELECTOR, "button.Select__Button.bottom-left").click()
+			for a in self.driver.find_elements(By.CLASS_NAME , "Select__Dropdown__Items__Item"):
+				if name == a.get_attribute("innerText"):
+					a.click()
+					break
+			print("Selected domain: ", self.driver.find_element(By.CSS_SELECTOR, "span.Select__Button__Label").get_attribute("innerText"))
 		sleep(0.5)
 		WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).send_keys("admin"+name.partition('.')[0])
+		WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).send_keys("admin"+name.partition('.')[0])
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.inputPassword>div>div>div>button"))).click()
+		print(WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-text"))).get_attribute("innerText"))
+		print(WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input.input-password.grow"))).get_attribute("innerText"))
 		sleep(1.5)
 		WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.button.-theme-safe.-size-big"))).click()
 
