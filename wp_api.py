@@ -59,7 +59,7 @@ class WP_API:
             return 0
         else:
             print(self.url)
-            print(response.json())
+            print(response)
             raise Exception("Invalid Wordpress credentials")
 
 
