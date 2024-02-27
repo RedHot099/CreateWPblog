@@ -42,6 +42,7 @@ class OpenAI_API:
             "pl": " Odpowiedz w języku Polskim - Reply in Polish language.",
             "de": " Odpowiedz w języku Niemieckim - Reply in German language.",
             "en": " Odpowiedz w języku Angielskim - Reply in English language.",
+            "au": " Odpowiedz w języku Angielskim - Reply in English language.",
             "cs": " Odpowiedz w języku Czeskim - Reply in Czech language.",
             "sk": " Odpowiedz w języku Słowackim - Reply in Slovak language.",
             "fr": " Odpowiedz w języku Francuskim - Reply in French language.",
