@@ -48,7 +48,8 @@ class OpenAI_API:
             "fr": " Odpowiedz w języku Francuskim - Reply in French language.",
             "es": " Odpowiedz w języku Hiszpańskim - Reply in Spanish language.",
             "nl": " Odpowiedz w języku Niderlandzkim - Reply in Dutch language.",
-            "ro": " Odpowiedz w języku Rumuńskim - Reply in Romanian language."
+            "ro": " Odpowiedz w języku Rumuńskim - Reply in Romanian language.",
+            "sv": " Odpowiedz w języku Szwedzkim - Reply in Swedish language."
         }
 
 
